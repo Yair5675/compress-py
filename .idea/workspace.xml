@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)">
+    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Big change:&#10;The purpose of the encoding dictionary is to assign indices to given keys and make sure each index is unique. For this reason, it does not make sense to allow outside code to change the index of an existing key using __setitem__.&#10;For this reason, inserting keys is now done using the 'insert' method, and a new attribute keeps track of the next index that will be mapped upon insertion">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/compressors/lzw/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/lzw/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/compressors/lzw/encoding_dict.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/lzw/encoding_dict.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,7 +88,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730404138316</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Big change:&#10;The purpose of the encoding dictionary is to assign indices to given keys and make sure each index is unique. For this reason, it does not make sense to allow outside code to change the index of an existing key using __setitem__.&#10;For this reason, inserting keys is now done using the 'insert' method, and a new attribute keeps track of the next index that will be mapped upon insertion">
+      <option name="closed" value="true" />
+      <created>1730408636362</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1730408636362</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -97,6 +104,7 @@
     <MESSAGE value="Created the compressors package where different compression algorithms will be implemented, and added the base interface all implementations will adhere to" />
     <MESSAGE value="Created the `lzw` package - an inner package that will contain the logic of the LZW compression algorithm.&#10;The init file holds the main Compressor, and its skeleton was written.&#10;A class representing the dictionary used in the encoding process was also written comprehensively" />
     <MESSAGE value="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)" />
+    <MESSAGE value="Big change:&#10;The purpose of the encoding dictionary is to assign indices to given keys and make sure each index is unique. For this reason, it does not make sense to allow outside code to change the index of an existing key using __setitem__.&#10;For this reason, inserting keys is now done using the 'insert' method, and a new attribute keeps track of the next index that will be mapped upon insertion" />
+    <option name="LAST_COMMIT_MESSAGE" value="Big change:&#10;The purpose of the encoding dictionary is to assign indices to given keys and make sure each index is unique. For this reason, it does not make sense to allow outside code to change the index of an existing key using __setitem__.&#10;For this reason, inserting keys is now done using the 'insert' method, and a new attribute keeps track of the next index that will be mapped upon insertion" />
   </component>
 </project>
