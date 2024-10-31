@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Changed the container of the indices from a list to a deque, to optimize appending to it in the case of a lot of indices">
+    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Created a generator function that iterates through padded encoded data and lazily extracts the encoded indices from it (one at a time)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/compressors/lzw/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/lzw/__init__.py" afterDir="false" />
     </list>
@@ -128,7 +128,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730411881904</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Created a generator function that iterates through padded encoded data and lazily extracts the encoded indices from it (one at a time)">
+      <option name="closed" value="true" />
+      <created>1730415753416</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1730415753416</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -152,6 +160,7 @@
     <MESSAGE value="Created the function that takes the parsed indices, and turns them into one `bytes` object.&#10;The function needs to pad those indices for the decompression step to know where an index starts and ends, but it does so while using as little memory as needed" />
     <MESSAGE value="Finished the `encode` method by using the two previously coded methods" />
     <MESSAGE value="Changed the container of the indices from a list to a deque, to optimize appending to it in the case of a lot of indices" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changed the container of the indices from a list to a deque, to optimize appending to it in the case of a lot of indices" />
+    <MESSAGE value="Created a generator function that iterates through padded encoded data and lazily extracts the encoded indices from it (one at a time)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Created a generator function that iterates through padded encoded data and lazily extracts the encoded indices from it (one at a time)" />
   </component>
 </project>

@@ -1,7 +1,7 @@
 from typing import Generator
 from collections import deque
 from compressors import Compressor
-from encoding_dict import EncodingDict
+from encoding_dict import EncodingDict, TooManyEncodingsException
 
 
 class LzwCompressor(Compressor):
@@ -127,4 +127,59 @@ class LzwCompressor(Compressor):
             yield index
 
     def decode(self, compressed_data: bytes) -> bytes:
-        pass
+        """
+        Decodes the given compressed data according to the LZW algorithm.
+        Certain assumptions are made about the given data, so this function should only be
+        used on data that was compressed using the `encode` method in the LzwCompressor class.
+        :param compressed_data: Data that was compressed using the LzwCompressor class.
+        :return: The decompressed bytes of the given data.
+        :raises ValueError: If the data is not padded correctly and reading indices from it fails.
+        :raises TooManyEncodingsException: If in order to decompress the data, the number of entries
+                                           in the decoder dictionary exceeds the maximum.
+        """
+        # The decoding dictionary is easier so just use a normal dictionary (and a keys set for faster
+        # lookup):
+        unoccupied_idx = 256
+        keys: set[int] = set()
+        decoder_dict: dict[int, bytes] = {}
+
+        output: bytes = b''
+        last_emitted: bytes = b''
+
+        for encoded_idx in LzwCompressor.encoded_indices_iterator(compressed_data):
+            # Check for memory limitations:
+            if encoded_idx - 256 > self.__encoder_dict.max_size:
+                raise TooManyEncodingsException()
+
+            # Check if the index is in the dictionary (smaller than unoccupied_idx), or is ascii:
+            is_ascii, is_in_dict = encoded_idx < 256, encoded_idx < unoccupied_idx
+            if is_ascii or is_in_dict:
+                # Get the corresponding bytes and add them to the output:
+                decoded = bytes([encoded_idx]) if is_ascii else decoder_dict[encoded_idx]
+                output += decoded
+
+                # Add the last emitted bytes object along with the first byte of the decoded
+                # bytes to the dictionary:
+                decoder_dict[unoccupied_idx] = last_emitted + decoded[0]
+                keys.add(unoccupied_idx)
+                unoccupied_idx += 1
+
+                # Switch the last emitted:
+                last_emitted = decoded
+            # It's ok if the index is completely new, but make sure it is legit and the last emitted
+            # bytes object isn't empty (in a correct compression, first index is always below 256,
+            # but the index reader may read an invalid index:
+            elif len(last_emitted) == 0:
+                raise ValueError('Malformed compressed data: Invalid index value at the start')
+
+            # If the index is completely new, add the first byte of the last emitted bytes to itself,
+            # and add the result to both the dictionary and the output:
+            else:
+                last_emitted = last_emitted + last_emitted[0]
+                output += last_emitted
+
+                decoder_dict[unoccupied_idx] = last_emitted
+                keys.add(unoccupied_idx)
+                unoccupied_idx += 1
+
+        return output
