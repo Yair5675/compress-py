@@ -19,8 +19,8 @@ class EncodingDict:
     __QUERY_NOT_FOUND_MSG = "Byte slice '{}' was not saved in the dictionary"
 
     __slots__ = [
-        # The current amount of entries in the dictionary:
-        '__current_size',
+        # A Set holding every key created (optimizes key lookups):
+        '__keys_set',
 
         # The maximum amount of entries in the dictionary (apart from ascii values):
         '__max_size',
@@ -36,9 +36,11 @@ class EncodingDict:
         elif max_dict_size <= 0:
             raise ValueError(EncodingDict.__INVALID_DICT_SIZE_VALUE_MSG)
 
-        # Set the max size and the current size:
-        self.__current_size = 0
+        # Set the max size:
         self.__max_size = max_dict_size
+
+        # Initialize the key set:
+        self.__keys_set: set[bytes] = set()
 
         # Set the dictionary:
         self.__encoded_values: dict[bytes, int] = {}
@@ -68,20 +70,26 @@ class EncodingDict:
 
         # If it's a new value, check for size limitation:
         is_new_key = not self.contains_key(key)
-        if self.current_size >= self.max_size and is_new_key:
+        if len(self) >= self.max_size and is_new_key:
             raise TooManyEncodingsException()
 
         # Set the value:
-        if is_new_key:
-            self.__current_size += 1
         self.__encoded_values[key] = value
+
+        # If it's a new key, add it to the set:
+        if is_new_key:
+            self.__keys_set.add(key)
+
+    def __len__(self):
+        return len(self.__keys_set)
 
     def contains_key(self, key: bytes) -> bool:
         # Type checking...
         EncodingDict.__validate_query(key)
 
         # NOW check:
-        return len(key) == 1 or key in self.__encoded_values.keys()
+        is_ascii_value = len(key) == 1 and ord(key) < 256
+        return is_ascii_value or key in self.__keys_set
 
     def clear(self) -> None:
         """
@@ -89,7 +97,7 @@ class EncodingDict:
         built-in.
         The maximum amount of entries that can be saved in the dictionary is not changed.
         """
-        self.__current_size = 0
+        self.__keys_set.clear()
         self.__encoded_values.clear()
 
     @staticmethod
@@ -107,11 +115,3 @@ class EncodingDict:
         This value is final and cannot be changed.
         """
         return self.__max_size
-
-    @property
-    def current_size(self) -> int:
-        """
-        The current amount of entries saved in the dictionary, excluding the built-in ascii entries.
-        This value is final and cannot be changed.
-        """
-        return self.__current_size
