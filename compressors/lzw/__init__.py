@@ -1,6 +1,8 @@
+from typing import Generator
 from collections import deque
 from compressors import Compressor
 from encoding_dict import EncodingDict
+
 
 class LzwCompressor(Compressor):
     __slots__ = [
@@ -98,6 +100,31 @@ class LzwCompressor(Compressor):
 
         # Pad and return them:
         return LzwCompressor.__pad_encoded_indices(indices)
+
+    @staticmethod
+    def encoded_indices_iterator(compressed_data: bytes) -> Generator[int, None, None]:
+        """
+        Provides a generator iterating through the compressed data and removing the padding from it.
+        The generator will extract the encoded indices in the data.
+        :param compressed_data: Data that was compressed using the LzwCompressor class.
+        :raises ValueError: If either a length byte has a non-positive value, or there aren't enough bytes
+                            following said length byte.
+        """
+        byte_idx = 0
+        while byte_idx < len(compressed_data):
+            # Get the length byte:
+            index_len = int(compressed_data[byte_idx])
+            byte_idx += 1
+
+            # Validate length:
+            if index_len <= 0:
+                raise ValueError(f'Malformed compressed data: Invalid value for length byte ({index_len})')
+            elif byte_idx + index_len > len(compressed_data):
+                raise ValueError(f'Malformed compressed data: Not enough bytes for index')
+
+            # Convert the next bytes to integer (remember big indian - significant byte first):
+            index = int.from_bytes(compressed_data[byte_idx:byte_idx + index_len], byteorder='big')
+            yield index
 
     def decode(self, compressed_data: bytes) -> bytes:
         pass
