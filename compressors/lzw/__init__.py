@@ -49,6 +49,37 @@ class LzwCompressor(Compressor):
 
         return output
 
+    @staticmethod
+    def __pad_encoded_indices(indices: list[int]) -> bytes:
+        """
+        When compressing the indices, the decompression algorithm needs to know where an index starts and end.
+        One approach is to decide on a fixed size for all of them, however this wastes space.
+        The current function pads the indices in the following way:
+            Before every index, an extra byte is added. This byte will tell the decompression algorithm
+            how many bytes to read for the next index.
+        This method adds only one extra byte per index, which is more efficient than the other approach
+        mentioned above.
+        :param indices: A list of the indices that will be padded and turned into a bytes object.
+        :return: A bytes object containing the given indices along with extra bytes to allow the decompression
+                 algorithm to read the indices.
+        """
+        # For every index, extract only its necessary bytes (get rid of unnecessary 0 bits):
+        def get_important_bytes(n: int) -> bytes:
+            if n == 0:
+                return bytes(1)
+            important_bytes = []
+            while n > 0:
+                important_bytes.append(n & 0xFF)
+                n >>= 8
+            return bytes(reversed(important_bytes))  # Most significant byte first
+        necessary_indices_bytes = map(get_important_bytes, indices)
+
+        # Add an extra byte for length:
+        padded_indices = map(lambda index_bytes: bytes([len(index_bytes)]) + index_bytes, necessary_indices_bytes)
+
+        # Concatenate it all:
+        return b''.join(padded_indices)
+
     def encode(self, input_data: bytes) -> bytes:
         """
         Compresses the input data based on the Lempel-Ziv-Welch algorithm.
