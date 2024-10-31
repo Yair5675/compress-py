@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Created the function that parses input data into a list of encoder dictionary indices.&#10;Note that this method does not handle the potential `TooManyEncodingsException`. This is intentional, and the exception will be later propagated upwards in the `encode` method">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/compressors/lzw/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/lzw/__init__.py" afterDir="false" />
-    </list>
+    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Finished the `encode` method by using the two previously coded methods" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -104,8 +101,35 @@
       <option name="project" value="LOCAL" />
       <updated>1730409491698</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Created the function that takes the parsed indices, and turns them into one `bytes` object.&#10;The function needs to pad those indices for the decompression step to know where an index starts and ends, but it does so while using as little memory as needed">
+      <option name="closed" value="true" />
+      <created>1730411468340</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1730411468340</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Finished the `encode` method by using the two previously coded methods">
+      <option name="closed" value="true" />
+      <created>1730411676858</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1730411676858</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial commit" />
@@ -114,6 +138,8 @@
     <MESSAGE value="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)" />
     <MESSAGE value="Big change:&#10;The purpose of the encoding dictionary is to assign indices to given keys and make sure each index is unique. For this reason, it does not make sense to allow outside code to change the index of an existing key using __setitem__.&#10;For this reason, inserting keys is now done using the 'insert' method, and a new attribute keeps track of the next index that will be mapped upon insertion" />
     <MESSAGE value="Created the function that parses input data into a list of encoder dictionary indices.&#10;Note that this method does not handle the potential `TooManyEncodingsException`. This is intentional, and the exception will be later propagated upwards in the `encode` method" />
-    <option name="LAST_COMMIT_MESSAGE" value="Created the function that parses input data into a list of encoder dictionary indices.&#10;Note that this method does not handle the potential `TooManyEncodingsException`. This is intentional, and the exception will be later propagated upwards in the `encode` method" />
+    <MESSAGE value="Created the function that takes the parsed indices, and turns them into one `bytes` object.&#10;The function needs to pad those indices for the decompression step to know where an index starts and ends, but it does so while using as little memory as needed" />
+    <MESSAGE value="Finished the `encode` method by using the two previously coded methods" />
+    <option name="LAST_COMMIT_MESSAGE" value="Finished the `encode` method by using the two previously coded methods" />
   </component>
 </project>

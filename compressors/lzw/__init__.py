@@ -1,6 +1,6 @@
+from collections import deque
 from compressors import Compressor
 from encoding_dict import EncodingDict
-
 
 class LzwCompressor(Compressor):
     __slots__ = [
@@ -12,13 +12,13 @@ class LzwCompressor(Compressor):
         # Set the encoder dictionary:
         self.__encoder_dict = EncodingDict(max_dict_size)
 
-    def __get_encoder_indices(self, input_data: bytes) -> list[int]:
+    def __get_encoder_indices(self, input_data: bytes) -> deque[int]:
         """
         Parses the input data and converts it to a list of indices inside an encoder dictionary.
         Calling this method will change the encoder dictionary saved in the object, as previous
         indices cannot be used on the new data.
         :param input_data: The input data before being compressed.
-        :return: A list of indices inside an encoder dictionary.
+        :return: A deque of indices inside an encoder dictionary.
         :raises TooManyEncodingsException: If not enough memory was given to the encoding dictionary
                                            in order to complete the algorithm.
         """
@@ -27,7 +27,7 @@ class LzwCompressor(Compressor):
 
         # The starting index of the slice that matches a dictionary value:
         matching_start_idx: int = 0
-        output: list[int] = []
+        output: deque[int] = deque()
 
         for i in range(1, len(input_data)):
             # Get the current data slice:
@@ -50,7 +50,7 @@ class LzwCompressor(Compressor):
         return output
 
     @staticmethod
-    def __pad_encoded_indices(indices: list[int]) -> bytes:
+    def __pad_encoded_indices(indices: deque[int]) -> bytes:
         """
         When compressing the indices, the decompression algorithm needs to know where an index starts and end.
         One approach is to decide on a fixed size for all of them, however this wastes space.
