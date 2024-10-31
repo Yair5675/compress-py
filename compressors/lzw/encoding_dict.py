@@ -22,6 +22,9 @@ class EncodingDict:
         # A Set holding every key created (optimizes key lookups):
         '__keys_set',
 
+        # The smallest unoccupied index that we can insert to:
+        '__unoccupied_idx',
+
         # The maximum amount of entries in the dictionary (apart from ascii values):
         '__max_size',
 
@@ -39,10 +42,9 @@ class EncodingDict:
         # Set the max size:
         self.__max_size = max_dict_size
 
-        # Initialize the key set:
+        # Initialize stuff:
         self.__keys_set: set[bytes] = set()
-
-        # Set the dictionary:
+        self.__unoccupied_idx: int = 256
         self.__encoded_values: dict[bytes, int] = {}
 
     def __getitem__(self, item: bytes) -> int:
@@ -56,29 +58,33 @@ class EncodingDict:
         # If it's of length one, return its ascii value. If not, return the saved value:
         return ord(item) if len(item) == 1 else self.__encoded_values[item]
 
-    def __setitem__(self, key: bytes, value: int) -> None:
-        # Validate key (it's ok if it doesn't exist):
+    def insert(self, key: bytes) -> bool:
+        """
+        Inserts a key into the dictionary. The index that the key will be mapped to will be
+        the smallest unoccupied index found.
+        If the key was already saved in the dictionary, nothing will change.
+        :param key: The key that will be mapped to an index inside the dictionary.
+        :return: True if the key was added, false otherwise.
+        :raises TypeError: If the key isn't of type bytes
+        :raises ValueError: If the key is of length 0.
+        :raises TooManyEncodingsException: If, after the insertion of the key, the amount of entries
+                                           will exceed the allowed amount.
+        """
+        # Validate key and make sure it isn't already saved:
         self.__validate_query(key)
+        if self.contains_key(key):
+            return False
 
-        # Add another limitation - single byte keys cannot be changed (as they are encoded to ascii values):
-        if len(key) == 1:
-            raise ValueError(EncodingDict.__SETTING_ASCII_KEYS_MSG)
-
-        # Validate value (just needs to be an integer really):
-        if not isinstance(value, int):
-            raise TypeError(EncodingDict.__INVALID_INDEX_TYPE_MSG)
-
-        # If it's a new value, check for size limitation:
-        is_new_key = not self.contains_key(key)
-        if len(self) >= self.max_size and is_new_key:
+        # Check if there is enough memory:
+        if len(self) >= self.max_size:
             raise TooManyEncodingsException()
 
-        # Set the value:
-        self.__encoded_values[key] = value
+        # Insert the key:
+        self.__encoded_values[key] = self.__unoccupied_idx
+        self.__unoccupied_idx += 1
+        self.__keys_set.add(key)
 
-        # If it's a new key, add it to the set:
-        if is_new_key:
-            self.__keys_set.add(key)
+        return True
 
     def __len__(self):
         return len(self.__keys_set)
@@ -97,6 +103,7 @@ class EncodingDict:
         built-in.
         The maximum amount of entries that can be saved in the dictionary is not changed.
         """
+        self.__unoccupied_idx = 256
         self.__keys_set.clear()
         self.__encoded_values.clear()
 

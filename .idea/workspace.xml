@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Created the `lzw` package - an inner package that will contain the logic of the LZW compression algorithm.&#10;The init file holds the main Compressor, and its skeleton was written.&#10;A class representing the dictionary used in the encoding process was also written comprehensively">
+    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/compressors/lzw/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/lzw/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/compressors/lzw/encoding_dict.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/lzw/encoding_dict.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -79,13 +81,22 @@
       <option name="project" value="LOCAL" />
       <updated>1730403373370</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)">
+      <option name="closed" value="true" />
+      <created>1730404138316</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1730404138316</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial commit" />
     <MESSAGE value="Created the compressors package where different compression algorithms will be implemented, and added the base interface all implementations will adhere to" />
     <MESSAGE value="Created the `lzw` package - an inner package that will contain the logic of the LZW compression algorithm.&#10;The init file holds the main Compressor, and its skeleton was written.&#10;A class representing the dictionary used in the encoding process was also written comprehensively" />
-    <option name="LAST_COMMIT_MESSAGE" value="Created the `lzw` package - an inner package that will contain the logic of the LZW compression algorithm.&#10;The init file holds the main Compressor, and its skeleton was written.&#10;A class representing the dictionary used in the encoding process was also written comprehensively" />
+    <MESSAGE value="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Two changes:&#10;1) A new private attribute 'keys_set' was created. This change heavily optimizes searching for a key, from O(n) time complexity (key in self.__encoded_values.keys()) to O(1) time complexity (key in self.__keys_set)&#10;&#10;2) The 'current_size' property and attribute was removed. Instead, the __len__ method is implemented to return the amount of keys in the dictionary (which is also the amount of entries)" />
   </component>
 </project>
