@@ -85,10 +85,19 @@ class LzwCompressor(Compressor):
         Compresses the input data based on the Lempel-Ziv-Welch algorithm.
         :param input_data: The input data before being compressed.
         :return: The input data after being compressed by the LZW algorithms.
+        :raises TypeError: If the input data isn't a `bytes` object.
         :raises TooManyEncodingsException: If not enough memory was given to the encoding dictionary
                                            in order to complete the algorithm.
         """
-        pass
+        # Validate type:
+        if not isinstance(input_data, bytes):
+            raise TypeError(f'Expected type bytes, got {type(input_data)} instead')
+
+        # Parse indices:
+        indices = self.__get_encoder_indices(input_data)
+
+        # Pad and return them:
+        return LzwCompressor.__pad_encoded_indices(indices)
 
     def decode(self, compressed_data: bytes) -> bytes:
         pass
