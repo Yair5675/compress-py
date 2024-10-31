@@ -162,10 +162,11 @@ class LzwCompressor(Compressor):
                 output += decoded
 
                 # Add the last emitted bytes object along with the first byte of the decoded
-                # bytes to the dictionary:
-                decoder_dict[unoccupied_idx] = last_emitted + bytes([decoded[0]])
-                keys.add(unoccupied_idx)
-                unoccupied_idx += 1
+                # bytes to the dictionary (only if the result is not an ascii value!):
+                if len(last_emitted) > 0:
+                    decoder_dict[unoccupied_idx] = last_emitted + bytes([decoded[0]])
+                    keys.add(unoccupied_idx)
+                    unoccupied_idx += 1
 
                 # Switch the last emitted:
                 last_emitted = decoded
