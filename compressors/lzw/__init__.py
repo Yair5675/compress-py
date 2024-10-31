@@ -1,7 +1,7 @@
 from typing import Generator
 from collections import deque
 from compressors import Compressor
-from encoding_dict import EncodingDict, TooManyEncodingsException
+from .encoding_dict import EncodingDict, TooManyEncodingsException
 
 
 class LzwCompressor(Compressor):
@@ -113,7 +113,7 @@ class LzwCompressor(Compressor):
         byte_idx = 0
         while byte_idx < len(compressed_data):
             # Get the length byte:
-            index_len = int(compressed_data[byte_idx])
+            index_len = compressed_data[byte_idx]
             byte_idx += 1
 
             # Validate length:
@@ -124,6 +124,9 @@ class LzwCompressor(Compressor):
 
             # Convert the next bytes to integer (remember big indian - significant byte first):
             index = int.from_bytes(compressed_data[byte_idx:byte_idx + index_len], byteorder='big')
+
+            # Move the byte index the rest of the bytes:
+            byte_idx += index_len
             yield index
 
     def decode(self, compressed_data: bytes) -> bytes:
@@ -160,7 +163,7 @@ class LzwCompressor(Compressor):
 
                 # Add the last emitted bytes object along with the first byte of the decoded
                 # bytes to the dictionary:
-                decoder_dict[unoccupied_idx] = last_emitted + decoded[0]
+                decoder_dict[unoccupied_idx] = last_emitted + bytes([decoded[0]])
                 keys.add(unoccupied_idx)
                 unoccupied_idx += 1
 
@@ -175,7 +178,7 @@ class LzwCompressor(Compressor):
             # If the index is completely new, add the first byte of the last emitted bytes to itself,
             # and add the result to both the dictionary and the output:
             else:
-                last_emitted = last_emitted + last_emitted[0]
+                last_emitted = last_emitted + bytes([last_emitted[0]])
                 output += last_emitted
 
                 decoder_dict[unoccupied_idx] = last_emitted
