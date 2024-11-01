@@ -73,7 +73,7 @@ class LzwCompressor(Compressor):
             while n > 0:
                 important_bytes.append(n & 0xFF)
                 n >>= 8
-            return bytes(reversed(important_bytes))  # Most significant byte first
+            return bytes(important_bytes)  # Most significant byte last (little endian)
         necessary_indices_bytes = map(get_important_bytes, indices)
 
         # Add an extra byte for length:
@@ -122,8 +122,8 @@ class LzwCompressor(Compressor):
             elif byte_idx + index_len > len(compressed_data):
                 raise ValueError(f'Malformed compressed data: Not enough bytes for index')
 
-            # Convert the next bytes to integer (remember big indian - significant byte first):
-            index = int.from_bytes(compressed_data[byte_idx:byte_idx + index_len], byteorder='big')
+            # Convert the next bytes to integer (remember little indian - significant byte is last):
+            index = int.from_bytes(compressed_data[byte_idx:byte_idx + index_len], byteorder='little')
 
             # Move the byte index the rest of the bytes:
             byte_idx += index_len
