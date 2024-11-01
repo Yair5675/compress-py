@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Created the HuffmanTree: A binary tree responsible for mapping small bits as identifiers for byte values.&#10;Currently, the class is initialized and builds the tree itself, but is yet to calculate the identifiers based on the tree">
-      <change afterPath="$PROJECT_DIR$/compressors/huffman/identifiers.py" afterDir="false" />
+    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Moved the handling of identifiers (short byte values that represent regular byte values) out of the HuffmanTree class. Methods for handling them are now in a separate file: identifiers.py.&#10;In this file there are currently three functions:&#10;1) get_identifiers(HuffmanTree) - Produces a mapping between the original byte values and the shortened ones (Implemented).&#10;2) get_identifiers(bytes) - Produces a mapping between the shortened byte values and the originals (used later during decoding, unimplemented)&#10;3) turn_identifiers_into_bytes(dict[bytes, bytes]) - Produces a single bytes object holding the identifiers, will be used during encoding (unimplemented)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/compressors/huffman/tree.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/huffman/tree.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/compressors/huffman/identifiers.py" beforeDir="false" afterPath="$PROJECT_DIR$/compressors/huffman/identifiers.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -232,7 +231,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730480431397</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Moved the handling of identifiers (short byte values that represent regular byte values) out of the HuffmanTree class. Methods for handling them are now in a separate file: identifiers.py.&#10;In this file there are currently three functions:&#10;1) get_identifiers(HuffmanTree) - Produces a mapping between the original byte values and the shortened ones (Implemented).&#10;2) get_identifiers(bytes) - Produces a mapping between the shortened byte values and the originals (used later during decoding, unimplemented)&#10;3) turn_identifiers_into_bytes(dict[bytes, bytes]) - Produces a single bytes object holding the identifiers, will be used during encoding (unimplemented)">
+      <option name="closed" value="true" />
+      <created>1730487235591</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1730487235591</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -264,7 +271,8 @@
     <MESSAGE value="Created the huffman nested package where an implementation of the huffman coding technique will be implemented. The main class (HuffmanCompressor)'s skeleton was written" />
     <MESSAGE value="Micro-optimization: When padding the encoded indices, the important bytes of each index are now stored in little endian format. This just saves the program from having to reverse the bytes for each index" />
     <MESSAGE value="Created the HuffmanTree: A binary tree responsible for mapping small bits as identifiers for byte values.&#10;Currently, the class is initialized and builds the tree itself, but is yet to calculate the identifiers based on the tree" />
-    <option name="LAST_COMMIT_MESSAGE" value="Created the HuffmanTree: A binary tree responsible for mapping small bits as identifiers for byte values.&#10;Currently, the class is initialized and builds the tree itself, but is yet to calculate the identifiers based on the tree" />
+    <MESSAGE value="Moved the handling of identifiers (short byte values that represent regular byte values) out of the HuffmanTree class. Methods for handling them are now in a separate file: identifiers.py.&#10;In this file there are currently three functions:&#10;1) get_identifiers(HuffmanTree) - Produces a mapping between the original byte values and the shortened ones (Implemented).&#10;2) get_identifiers(bytes) - Produces a mapping between the shortened byte values and the originals (used later during decoding, unimplemented)&#10;3) turn_identifiers_into_bytes(dict[bytes, bytes]) - Produces a single bytes object holding the identifiers, will be used during encoding (unimplemented)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Moved the handling of identifiers (short byte values that represent regular byte values) out of the HuffmanTree class. Methods for handling them are now in a separate file: identifiers.py.&#10;In this file there are currently three functions:&#10;1) get_identifiers(HuffmanTree) - Produces a mapping between the original byte values and the shortened ones (Implemented).&#10;2) get_identifiers(bytes) - Produces a mapping between the shortened byte values and the originals (used later during decoding, unimplemented)&#10;3) turn_identifiers_into_bytes(dict[bytes, bytes]) - Produces a single bytes object holding the identifiers, will be used during encoding (unimplemented)" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>

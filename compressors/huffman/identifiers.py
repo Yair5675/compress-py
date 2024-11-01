@@ -51,7 +51,7 @@ def _(bit_stream: bytes) -> dict[bytes, bytes]:
     pass
 
 
-def turn_identifiers_into_bytes(identifiers: dict[bytes, bytes]) -> bytes:
+def turn_identifiers_into_bytes(identifiers: dict[bytes, bytes]) -> bytearray:
     """
     Given a dictionary that maps byte values from 0 to 255 to shorter byte values, the function produces a bit stream
     that contains those identifiers. The bit stream is saved in python as a bytes object.
@@ -67,5 +67,21 @@ def turn_identifiers_into_bytes(identifiers: dict[bytes, bytes]) -> bytes:
     :param identifiers: A dictionary mapping regular byte values to shorter byte values.
     :return: A bytes object that encodes these identifiers.
     """
-    # TODO
-    pass
+    # The value that will be assigned for every regular byte value which isn't present in the mapping:
+    no_identifier_val: Optional[int] = None
+
+    # The output itself:
+    output: bytearray = bytearray(256)
+    for i in range(0, len(output)):
+        # Check if there is an identifier:
+        identifier = int(identifiers.get(bytes([i])))
+
+        # If there isn't, set the 'no identifier' value if it's None:
+        if identifier is None:
+            no_identifier_val = i if no_identifier_val is None else no_identifier_val
+            identifier = no_identifier_val
+
+        # Add the identifier of the current byte value:
+        output[i] = identifier
+
+    return output
