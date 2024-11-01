@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Created the huffman nested package where an implementation of the huffman coding technique will be implemented. The main class (HuffmanCompressor)'s skeleton was written">
+    <list default="true" id="15464823-9ac5-4919-a2d6-4ca3dc644072" name="Changes" comment="Micro-optimization: When padding the encoded indices, the important bytes of each index are now stored in little endian format. This just saves the program from having to reverse the bytes for each index">
       <change afterPath="$PROJECT_DIR$/compressors/huffman/tree.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
@@ -215,7 +215,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730473584984</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Micro-optimization: When padding the encoded indices, the important bytes of each index are now stored in little endian format. This just saves the program from having to reverse the bytes for each index">
+      <option name="closed" value="true" />
+      <created>1730474882817</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1730474882817</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -245,7 +253,8 @@
     <MESSAGE value="Major bug fix: The decoding step was adding ascii values to the dictionary, causing all encoded values that are processed later to point to the wrong bytes" />
     <MESSAGE value="When decoding the bytes, they are now saved in a deque and joined at the end of the 'decode' method, instead of appended to a single bytes object.&#10;This change introduces a significant performance improvement (in one test, it reduced decoding time from 33 seconds to just 1.8)" />
     <MESSAGE value="Created the huffman nested package where an implementation of the huffman coding technique will be implemented. The main class (HuffmanCompressor)'s skeleton was written" />
-    <option name="LAST_COMMIT_MESSAGE" value="Created the huffman nested package where an implementation of the huffman coding technique will be implemented. The main class (HuffmanCompressor)'s skeleton was written" />
+    <MESSAGE value="Micro-optimization: When padding the encoded indices, the important bytes of each index are now stored in little endian format. This just saves the program from having to reverse the bytes for each index" />
+    <option name="LAST_COMMIT_MESSAGE" value="Micro-optimization: When padding the encoded indices, the important bytes of each index are now stored in little endian format. This just saves the program from having to reverse the bytes for each index" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
