@@ -33,6 +33,13 @@ class HuffmanTree:
         def __lt__(self, other: 'HuffmanTree.Node') -> bool:
             return self.frequency < other.frequency
 
+        def is_leaf(self) -> bool:
+            """
+            Checks if the current node is a leaf node.
+            :return: True if the current node has no children, False otherwise.
+            """
+            return self.left is None and self.right is None
+
         @property
         def char(self) -> Optional[bytes]:
             """
@@ -101,10 +108,6 @@ class HuffmanTree:
     __slots__ = [
         # The root node of the huffman tree (an optional node):
         '__root',
-
-        # The shortened identifiers for each character (a dictionary mapping a byte to its shortened code, which will
-        # often be a collection of bits smaller than a byte):
-        '__identifiers'
     ]
 
     def __init__(self, byte_frequencies: Sequence[int]):
@@ -134,7 +137,12 @@ class HuffmanTree:
         # Get the root (if all byte frequencies were zero, the queue is empty and the root is None):
         self.__root: Optional['HuffmanTree.Node'] = None if nodes_queue.empty() else nodes_queue.get_nowait()
 
-        # TODO: Calculate identifiers from tree
+    @property
+    def root(self) -> Optional['HuffmanTree.Node']:
+        """
+        :return: The root node of the huffman tree. If the tree is empty, None is returned.
+        """
+        return self.__root
 
     @staticmethod
     def __get_nodes_priority_queue(byte_frequencies: Sequence[int]) -> PriorityQueue['HuffmanTree.Node']:
