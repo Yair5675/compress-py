@@ -146,7 +146,8 @@ class LzwCompressor(Compressor):
         keys: set[int] = set()
         decoder_dict: dict[int, bytes] = {}
 
-        output: bytes = b''
+        # Prepare the output in a deque for memory optimization:
+        output: deque[bytes] = deque()
         last_emitted: bytes = b''
 
         for encoded_idx in LzwCompressor.encoded_indices_iterator(compressed_data):
@@ -159,7 +160,7 @@ class LzwCompressor(Compressor):
             if is_ascii or is_in_dict:
                 # Get the corresponding bytes and add them to the output:
                 decoded = bytes([encoded_idx]) if is_ascii else decoder_dict[encoded_idx]
-                output += decoded
+                output.append(decoded)
 
                 # Add the last emitted bytes object along with the first byte of the decoded
                 # bytes to the dictionary (only if the result is not an ascii value!):
@@ -170,9 +171,10 @@ class LzwCompressor(Compressor):
 
                 # Switch the last emitted:
                 last_emitted = decoded
+
             # It's ok if the index is completely new, but make sure it is legit and the last emitted
             # bytes object isn't empty (in a correct compression, first index is always below 256,
-            # but the index reader may read an invalid index:
+            # but the index reader may read an invalid index):
             elif len(last_emitted) == 0:
                 raise ValueError('Malformed compressed data: Invalid index value at the start')
 
@@ -180,10 +182,10 @@ class LzwCompressor(Compressor):
             # and add the result to both the dictionary and the output:
             else:
                 last_emitted = last_emitted + bytes([last_emitted[0]])
-                output += last_emitted
+                output.append(last_emitted)
 
                 decoder_dict[unoccupied_idx] = last_emitted
                 keys.add(unoccupied_idx)
                 unoccupied_idx += 1
 
-        return output
+        return b''.join(output)
