@@ -55,11 +55,55 @@ class BitBuffer:
 
         # In case we wrote enough to fill the entire integer, insert it to the deque and reset it:
         if self.__bit_idx == 32:
-            self.__saved_data.append(self.__current_int)
-            self.__current_int = None
-            self.__bit_idx = 0
+            self.__save_current_int()
 
         return self
+
+    def insert_byte(self, byte: bytes) -> 'BitBuffer':
+        """
+        Inserts a single byte into the bitbuffer.
+        Note that, in terms of ordering, the byte's most significant bit is inserted first, and the least significant
+        last.
+        :param byte: A bytes object holding A SINGLE byte. That byte value will be inserted into the buffer.
+        :return: The current BitBuffer object, in order to support the builder pattern.
+        :raises TypeError: If the given byte value is not of type `bytes`.
+        :raises ValueError: If the bytes object holds more than one byte.
+        """
+        # Type and value check:
+        if not isinstance(byte, bytes):
+            raise TypeError(f"Expected bytes, got {type(byte)} instead")
+        elif len(byte) != 1:
+            raise ValueError(f"Bytes object must hold a single byte - got {len(byte)} instead")
+
+        # Convert to integer:
+        byte_val: int = byte[0]
+
+        # Check if we need to replace the current integer:
+        if self.__current_int is None:
+            self.__current_int = 0
+
+        # Insert as many bits as possible into the current integer:
+        free_bits = 32 - self.__bit_idx
+        if free_bits > 8:
+            self.__current_int |= byte_val << (free_bits - 8)
+            self.__bit_idx += 8
+        else:
+            self.__current_int |= byte_val >> (8 - free_bits)
+
+            # Save the current integer and add the remaining bits to the next one:
+            self.__save_current_int()
+            self.__current_int = byte_val << (24 + free_bits)
+            self.__bit_idx = 8 - free_bits
+
+        return self
+
+    def __save_current_int(self) -> None:
+        """
+        Saves the current integer in the deque. Only use if the integer is full.
+        """
+        self.__saved_data.append(self.__current_int)
+        self.__current_int = None
+        self.__bit_idx = 0
 
     def __bytes__(self):
         """
