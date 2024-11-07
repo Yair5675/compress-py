@@ -87,6 +87,48 @@ class BitBuffer:
 
         return self
 
+    def insert_int(self, integer: int, redundant_bits: bool = False) -> 'BitBuffer':
+        """
+        Inserts the bits stored in the integer into the buffer, where the most significant bit is inserted first, and
+        the least significant last.
+        If redundant_bits is True, the redundant zero bits stores in the integer are added to the buffer as well.
+        :param integer: The integer whose bits will be saved in the buffer.
+        :param redundant_bits: A flag indicating whether the method should also insert the redundant bits of the integer
+                               (0 bits at the integer start) into the buffer, default is False (do not insert them).
+        :return: The current BitBuffer object, in order to support the builder pattern.
+        :raises TypeError: If `integer` is not of type int or `redundant_bits` is not bool.
+        """
+        # Type check:
+        if not isinstance(integer, int):
+            raise TypeError(f"Expected int, got {type(integer)} instead")
+        elif not isinstance(redundant_bits, bool):
+            raise TypeError(f"Expected bool, got {type(redundant_bits)} instead")
+
+        # Convert to the 4 bytes of the integer:
+        integer_bytes = integer.to_bytes(length=4, byteorder="big", signed=False)
+
+        # If they want the unnecessary bits as well, insert them as 4 bytes:
+        if redundant_bits:
+            for byte in integer_bytes:
+                self.insert_byte(bytes([byte]))
+            return self
+
+        # Shift the integer to bring important bits to the integer's most significant bit:
+        necessary_bits = integer.bit_length()
+        integer <<= 32 - necessary_bits
+
+        # Add bits until the remaining bits can be added as bytes:
+        for i in range(0, necessary_bits % 8):
+            self.insert_bit(integer >> 31)
+            integer <<= 1
+
+        # Add the rest as bytes:
+        for i in range(0, necessary_bits // 8):
+            self.insert_byte(bytes([integer >> 24]))
+            integer <<= 8
+
+        return self
+
     def __save_current_int(self) -> None:
         """
         Saves the current integer in the deque. Only use if the integer is full.
