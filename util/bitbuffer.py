@@ -1,4 +1,3 @@
-from typing import Optional
 from collections import deque
 
 
@@ -11,8 +10,7 @@ class BitBuffer:
         # to store data non-consecutively, and the integer type allows easy bit manipulation):
         '__saved_data',
 
-        # The current int we are writing to (it is still not in the `saved_data` attribute). Will be None if the object
-        # was just instantiated or if the previous `current_int` was just pushed to the deque:
+        # The current int we are writing to (it is still not in the `saved_data` attribute):
         '__current_int',
 
         # The index of the bit in 'current_int' that will be written to in the next method call. Notice that it
@@ -27,7 +25,7 @@ class BitBuffer:
         """
         # Initialize everything:
         self.__saved_data: deque[int] = deque()
-        self.__current_int: Optional[int] = None
+        self.__current_int: int = 0
         self.__bit_idx = 0
 
     def insert_bit(self, bit: int) -> 'BitBuffer':
@@ -44,10 +42,6 @@ class BitBuffer:
             raise TypeError(f"Expected int, got {type(bit)} instead")
         elif bit != 0 and bit != 1:
             raise ValueError(f"Bit value must equal 0 or 1, got {bit} instead")
-
-        # Check if we need to replace the current integer:
-        if self.__current_int is None:
-            self.__current_int = 0
 
         # Insert the bit:
         self.__current_int |= (bit & 1) << (31 - self.__bit_idx)
@@ -78,10 +72,6 @@ class BitBuffer:
         # Convert to integer:
         byte_val: int = byte[0]
 
-        # Check if we need to replace the current integer:
-        if self.__current_int is None:
-            self.__current_int = 0
-
         # Insert as many bits as possible into the current integer:
         free_bits = 32 - self.__bit_idx
         if free_bits > 8:
@@ -102,7 +92,7 @@ class BitBuffer:
         Saves the current integer in the deque. Only use if the integer is full.
         """
         self.__saved_data.append(self.__current_int)
-        self.__current_int = None
+        self.__current_int = 0
         self.__bit_idx = 0
 
     def __bytes__(self):
@@ -125,7 +115,7 @@ class BitBuffer:
             for i in range(4):
                 stored_bits[int_idx * 4 + i] = BitBuffer.__get_byte_from_int(saved_int, i)
 
-        # Add the current int as well (bit_idx will be 0 if current_int is None and the loop won't execute):
+        # Add the current int as well:
         for i in range(current_int_bytes_count):
             stored_bits[saved_ints_bytes_count + i] = BitBuffer.__get_byte_from_int(self.__current_int, i)
 
