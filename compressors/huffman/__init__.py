@@ -1,4 +1,8 @@
+from .tree import HuffmanTree
+from collections import Counter
 from compressors import Compressor
+from util.bitbuffer import BitBuffer
+from identifiers import turn_identifiers_into_bytes
 
 
 class HuffmanCompressor(Compressor):
@@ -13,7 +17,28 @@ class HuffmanCompressor(Compressor):
         if not isinstance(input_data, bytes):
             raise TypeError(f'Expected type bytes, got {type(input_data)} instead')
 
-        # TODO: Implement the algorithm
+        # Count the frequency of every byte value in the input data, and turn it into a list of size 256:
+        frequencies: Counter = Counter(input_data)
+        frequencies: list[int] = [frequencies[i] for i in range(256)]
+
+        # Create the huffman tree and produce identifiers from it:
+        huffman_tree = HuffmanTree(frequencies)
+        encoded_bytes: dict[bytes, int] = huffman_tree.get_encodings()
+
+        # Create a buffer that will store the compressed bits:
+        bit_buffer: BitBuffer = BitBuffer()
+
+        # Encode the huffman encodings:
+        encodings_stream: bytes = turn_identifiers_into_bytes(encoded_bytes)
+        for stream_byte_val in encodings_stream:
+            bit_buffer.insert_byte(bytes([stream_byte_val]))
+
+        # Replace byte values with their huffman encoding:
+        for byte_val in input_data:
+            encoding: int = encoded_bytes[bytes([byte_val])]
+            bit_buffer.insert_int(encoding)
+
+        return bytes(bit_buffer)
 
     def decode(self, compressed_data: bytes) -> bytes:
         """
