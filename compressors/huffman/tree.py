@@ -125,7 +125,7 @@ class HuffmanTree:
         nodes_queue: PriorityQueue['HuffmanTree.Node'] = HuffmanTree.__get_nodes_priority_queue(byte_frequencies)
 
         # Merge every two least-frequent nodes until there's only one left:
-        while len(nodes_queue) >= 2:
+        while nodes_queue.qsize() >= 2:
             # Construct a parent - left child will have a smaller frequency:
             a, b = nodes_queue.get_nowait(), nodes_queue.get_nowait()
             left, right = min(a, b), max(a, b)
