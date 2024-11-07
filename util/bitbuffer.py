@@ -1,5 +1,9 @@
 from collections import deque
 
+# In order to enforce the assumption that all integers have 32 bits, 'and' every left-shift result with this mask to
+# receive the first 32 bits only:
+FULL_INT_MASK = 0xFFFFFFFF
+
 
 class BitBuffer:
     """
@@ -44,7 +48,7 @@ class BitBuffer:
             raise ValueError(f"Bit value must equal 0 or 1, got {bit} instead")
 
         # Insert the bit:
-        self.__current_int |= (bit & 1) << (31 - self.__bit_idx)
+        self.__current_int |= ((bit & 1) << (31 - self.__bit_idx)) & FULL_INT_MASK
         self.__bit_idx += 1
 
         # In case we wrote enough to fill the entire integer, insert it to the deque and reset it:
@@ -75,14 +79,14 @@ class BitBuffer:
         # Insert as many bits as possible into the current integer:
         free_bits = 32 - self.__bit_idx
         if free_bits > 8:
-            self.__current_int |= byte_val << (free_bits - 8)
+            self.__current_int |= (byte_val << (free_bits - 8)) & FULL_INT_MASK
             self.__bit_idx += 8
         else:
             self.__current_int |= byte_val >> (8 - free_bits)
 
             # Save the current integer and add the remaining bits to the next one:
             self.__save_current_int()
-            self.__current_int = byte_val << (24 + free_bits)
+            self.__current_int = (byte_val << (24 + free_bits)) & FULL_INT_MASK
             self.__bit_idx = 8 - free_bits
 
         return self
@@ -115,17 +119,17 @@ class BitBuffer:
 
         # Shift the integer to bring important bits to the integer's most significant bit:
         necessary_bits = integer.bit_length()
-        integer <<= 32 - necessary_bits
+        integer = (integer << 32 - necessary_bits) & FULL_INT_MASK
 
         # Add bits until the remaining bits can be added as bytes:
         for i in range(0, necessary_bits % 8):
             self.insert_bit(integer >> 31)
-            integer <<= 1
+            integer = (integer << 1) & FULL_INT_MASK
 
         # Add the rest as bytes:
         for i in range(0, necessary_bits // 8):
             self.insert_byte(bytes([integer >> 24]))
-            integer <<= 8
+            integer = (integer << 8) & FULL_INT_MASK
 
         return self
 
