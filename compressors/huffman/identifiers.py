@@ -1,10 +1,11 @@
 from typing import Optional
 from .tree import HuffmanTree
+from util.bitbuffer import BitBuffer
 from functools import singledispatch
 
 
 @singledispatch
-def get_identifiers(arg) -> dict[bytes, bytes]:
+def get_identifiers(_) -> dict[bytes, bytes]:
     pass
 
 
@@ -56,37 +57,98 @@ def _(bit_stream: bytes) -> dict[bytes, bytes]:
     pass
 
 
-def turn_identifiers_into_bytes(identifiers: dict[bytes, bytes]) -> bytearray:
+def turn_identifiers_into_bytes(identifiers: dict[bytes, int]) -> bytearray:
     """
-    Given a dictionary that maps byte values from 0 to 255 to shorter byte values, the function produces a bit stream
+    Given a dictionary that maps byte values from 0 to 255 to shorter identifiers, the function produces a bit stream
     that contains those identifiers. The bit stream is saved in python as a bytes object.
+    The stream's length will vary depending on the identifiers, in order to save space as much as possible.
 
-    The stream will consist of 256 bytes always, even if there are fewer identifiers in the dictionary. Each byte
-    at index 'i' from the start will hold the shortened byte value for the byte value i.
+    The stream's format is the following:
+    The first byte will always contain the number of identifiers encoded. There are 256 possible identifiers (in case
+    all byte values are encoded), so the number of identifiers in the stream will be the first byte's value, plus one.
+    Note that this doesn't allow for 0 identifiers. If an empty dictionary is given to the function, the result will
+    always be an empty bytes object.
 
-    As for the missing identifiers - byte values that don't have a corresponding shorter identifier will be given the
-    same value, which will be different from any actual short byte value saved in the dictionary. Pay attention that
-    although this value will be the same across identifier in a single bitstream, it is not guaranteed that it will be
-    the same across multiple bitstreams. Different identifiers will result in different 'NO IDENTIFIER' byte value.
+    The next byte value is the identifier key (the value that is encoded).
+    The next half a byte (4 bits) will hold the length of the encoded identifier in BITS (not bytes). 4 bits allows
+    for a maximum of 15 bits, or 32768 possible values for the identifier. This is enough values while also being pretty
+    compact in terms of memory.
+    The next bits will be the actual encoded value, and after them either the stream ends or the next identifier will be
+    stored.
 
-    :param identifiers: A dictionary mapping regular byte values to shorter byte values.
+    :param identifiers: A dictionary mapping regular byte values to shorter values, which are stored as an integer for
+                        simpler bit operations.
     :return: A bytes object that encodes these identifiers.
+    :raises TypeError: If the argument isn't a dictionary mapping bytes to integers.
+    :raises ValueError: If the amount of entries exceeds 256, or if the key of one of the entries contains multiple
+                        bytes (only one is allowed).
     """
-    # The value that will be assigned for every regular byte value which isn't present in the mapping:
-    no_identifier_val: Optional[int] = None
+    # If the dictionary is empty, return an empty bytes object:
+    if len(identifiers) == 0:
+        return bytes()
 
-    # The output itself:
-    output: bytearray = bytearray(256)
-    for i in range(0, len(output)):
-        # Check if there is an identifier:
-        identifier = int(identifiers.get(bytes([i])))
+    # Check that the dictionary has a maximum of 256 entries, and they all contain one byte as key:
+    __validate_identifiers_dict(identifiers)
 
-        # If there isn't, set the 'no identifier' value if it's None:
-        if identifier is None:
-            no_identifier_val = i if no_identifier_val is None else no_identifier_val
-            identifier = no_identifier_val
+    # Initialize the bit buffer:
+    bit_buffer: BitBuffer = BitBuffer()
 
-        # Add the identifier of the current byte value:
-        output[i] = identifier
+    # Write the number of identifiers minus 1:
+    identifiers_count = len(identifiers) - 1
+    bit_buffer.insert_byte(bytes([identifiers_count]))
 
-    return output
+    # Insert the identifiers:
+    for byte_val, short_encoding in identifiers.items():
+        __insert_identifier_to_buffer(byte_val, short_encoding, bit_buffer)
+
+    return bytes(bit_buffer)
+
+
+def __insert_identifier_to_buffer(byte_val: bytes, short_encoding: int, buffer: BitBuffer) -> None:
+    """
+    Inserts the bits of the given encoding into the bit buffer.
+    :param byte_val: The byte value that is encoded.
+    :param short_encoding: The short encoding given to the byte value.
+    :param buffer: The buffer that the identifier will be inserted into.
+    """
+    # Insert the byte value:
+    buffer.insert_byte(byte_val)
+
+    # Insert the number of bits the short encoding takes up as a 4 bit value:
+    identifier_bits_len = short_encoding.bit_length() & 0xF
+    for i in range(3, -1, -1):
+        buffer.insert_bit((identifier_bits_len >> i) & 1)
+
+    # Insert the actual bits of the value:
+    for i in range(identifier_bits_len - 1, -1, -1):
+        buffer.insert_bit((short_encoding >> i) & 1)
+
+
+def __validate_identifiers_dict(identifiers: dict[bytes, int]) -> None:
+    """
+    Validates the type and length of the identifier dictionary.
+    :param identifiers: A dictionary mapping regular byte values to shorter values, which are stored as an integer for
+                        simpler bit operations.
+    :raises TypeError: If the argument isn't a dictionary mapping bytes to integers.
+    :raises ValueError: If the amount of entries exceeds 256, or if the key of one of the entries contains multiple
+                        bytes (only one is allowed).
+    """
+    # Check type:
+    if not isinstance(identifiers, dict):
+        raise TypeError(f"Expected dictionary, got {type(identifiers)} instead")
+
+    # Check entries count:
+    elif len(identifiers) > 256:
+        raise ValueError(f"The identifiers dictionary can only contain 256 entries max ({len(identifiers)} received)")
+
+    # Check key, value types:
+    for key, value in identifiers.items():
+        # Key check:
+        if not isinstance(key, bytes):
+            raise TypeError(f"Dictionary should use `bytes` as key type (got {type(key)} instead)")
+        elif len(key) != 1:
+            raise ValueError(f"Dictionary keys should be one byte long (got {len(key)})")
+
+        # Value check:
+        if not isinstance(value, int):
+            raise TypeError(f"Dictionary should use `int` as value type (got {type(value)} instead)")
