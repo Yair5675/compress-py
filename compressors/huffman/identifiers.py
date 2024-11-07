@@ -1,28 +1,20 @@
 from util.bitbuffer import BitBuffer
-from functools import singledispatch
 
 
-@singledispatch
-def get_identifiers(_) -> dict[bytes, bytes]:
-    pass
-
-
-@get_identifiers.register
-def _(bit_stream: bytes) -> dict[bytes, bytes]:
+def get_identifiers_from_bytes(bit_stream: bytes) -> dict[int, bytes]:
     """
     Given a bit stream as a bytes object, the function parses it and assigns every byte value from 0 to 255
-    a unique but shorter identifier.
-    The returned dictionary uses the shorter byte values as keys, and the original byte identifiers as values.
-
+    a unique huffman encoding
+    The returned dictionary uses the huffman encodings as keys, and the original byte values as values.
     :param bit_stream: A sequence of bytes that represent the huffman identifiers according to a pre-determined
-                       structure.
-    :return: A dictionary that maps short bit values to normal byte values.
+                       format.
+    :return: A dictionary that maps huffman encodings to normal byte values.
     """
     # TODO
     pass
 
 
-def turn_identifiers_into_bytes(identifiers: dict[bytes, int]) -> bytearray:
+def turn_identifiers_into_bytes(identifiers: dict[bytes, int]) -> bytes:
     """
     Given a dictionary that maps byte values from 0 to 255 to shorter identifiers, the function produces a bit stream
     that contains those identifiers. The bit stream is saved in python as a bytes object.
