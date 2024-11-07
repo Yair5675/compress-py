@@ -1,5 +1,3 @@
-from typing import Optional
-from .tree import HuffmanTree
 from util.bitbuffer import BitBuffer
 from functools import singledispatch
 
@@ -7,39 +5,6 @@ from functools import singledispatch
 @singledispatch
 def get_identifiers(_) -> dict[bytes, bytes]:
     pass
-
-
-@get_identifiers.register
-def _(huffman_tree: HuffmanTree) -> dict[bytes, int]:
-    """
-    Given a huffman tree, the function assigns each byte value inside it a huffman encoding - a potentially shorter
-    value based on the input data.
-    The returned dictionary uses the original byte values as keys, and the shorter identifiers as values. Pay attention
-    that the short identifiers may be more than one byte long, which is why they are represented as an integer (which
-    allows up to four bytes).
-    Of course, during encoding only the meaningful bits of the shorter identifiers are to be considered.
-
-    :param huffman_tree: A huffman tree corresponding to a certain input. Short identifier for each of its leaf nodes
-                         will be assigned according to its structure.
-    :return: A dictionary mapping between the original byte values and the shorter identifiers that were assigned to
-             them. Since the huffman tree only refers to byte values, the maximum amount of entries in the dictionary
-             is 256.
-    """
-    # Create the dictionary:
-    identifiers: dict[bytes, int] = {}
-
-    # Use recursion to find leaf nodes:
-    def dfs(node: Optional[HuffmanTree.Node], identifier: int):
-        if node is not None:
-            # if it's a leaf, assign an identifier
-            if node.is_leaf():
-                identifiers[node.char] = identifier
-            # If not, assign 0 to left and 1 to right:
-            else:
-                dfs(node.left, identifier << 1)
-                dfs(node.right, (identifier << 1) | 1)
-    dfs(huffman_tree.root, 0)
-    return identifiers
 
 
 @get_identifiers.register
