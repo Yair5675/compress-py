@@ -1,17 +1,84 @@
 from util.bitbuffer import BitBuffer
 
 
+class InvalidIdentifiersFormat(Exception):
+    """
+    An exception referring to improper formatting of byte-to-huffman-encoding as a bitstream.
+    """
+    def __init__(self, message="Invalid formatting of byte values to huffman encodings"):
+        super().__init__(message)
+
+
 def get_identifiers_from_bytes(bit_stream: bytes) -> dict[int, bytes]:
     """
     Given a bit stream as a bytes object, the function parses it and assigns every byte value from 0 to 255
-    a unique huffman encoding
+    a unique huffman encoding.
     The returned dictionary uses the huffman encodings as keys, and the original byte values as values.
     :param bit_stream: A sequence of bytes that represent the huffman identifiers according to a pre-determined
                        format.
     :return: A dictionary that maps huffman encodings to normal byte values.
+    :raises InvalidIdentifiersFormat: If the bitstream doesn't abide by the format used when representing the mapping
+                                      of byte values to huffman encodings as a bit stream.
     """
-    # TODO
-    pass
+    # Initialize the dictionary:
+    identifiers: dict[int, bytes] = {}
+
+    # Empty bytes case:
+    if len(bit_stream) == 0:
+        return identifiers
+
+    # First byte is the number of identifiers encoded (minus one):
+    identifiers_count = bit_stream[0] + 1
+
+    # Extract the identifiers (initialize a bit index):
+    bit_idx: int = 8
+    for i in range(identifiers_count):
+        try:
+            # Get the value that's encoded:
+            original_value = __read_bits(bit_stream, bit_idx, 8)
+            bit_idx += 8
+
+            # Get the length of the huffman encoding in bits (next 4 bits):
+            encoding_len = __read_bits(bit_stream, bit_idx, 4)
+            bit_idx += 4
+
+            # Get the actual encoding:
+            encoding = __read_bits(bit_stream, bit_idx, encoding_len)
+            bit_idx += encoding_len
+
+            # Insert to dictionary:
+            identifiers[encoding] = original_value
+        except IndexError:
+            raise InvalidIdentifiersFormat()
+
+    return identifiers
+
+
+def __read_bits(bitstream: bytes, offset: int, bits_num: int) -> int:
+    """
+    Reads the specified number of bits from the bitstream.
+    :param bitstream: A collection of bits represented as a bytes object.
+    :param offset: The offset from the start of the stream that the function will start reading from.
+    :param bits_num: The number of bits that will be returned. The maximum possible bits are 32, above that bits will
+                     be deleted from the result.
+    :return: The specified bits in the stream as an integer. The last bit requested will be stored in the integer's
+             least significant bit.
+    :raises IndexError: If offset + bits_num > 8 * len(bitstream)
+    """
+    # Check index:
+    if offset + bits_num > 8 * len(bitstream):
+        raise IndexError("Requested bit range exceeds bitstream size.")
+
+    # Initialize the result:
+    result: int = 0
+
+    # Read each bit:
+    for i in range(bits_num):
+        byte_idx, bit_idx = (offset + i) // 8, (offset + i) % 8
+        current_bit = (bitstream[byte_idx] >> (8 - bit_idx)) & 1
+        result = ((result << 1) | current_bit) & 0xFFFFFFFF
+
+    return result
 
 
 def turn_identifiers_into_bytes(identifiers: dict[bytes, int]) -> bytes:
