@@ -1,4 +1,5 @@
 import util
+from dataclasses import dataclass
 from util.bitbuffer import BitBuffer
 
 
@@ -8,6 +9,28 @@ class InvalidIdentifiersFormat(Exception):
     """
     def __init__(self, message="Invalid formatting of byte values to huffman encodings"):
         super().__init__(message)
+
+
+@dataclass
+class HuffmanEncoding:
+    # The length of the encoding in bits (necessary in case the encoding starts with 0):
+    bit_length: int
+    # The actual encoding:
+    encoding: int
+
+    def load_to_buffer(self, bit_buffer: BitBuffer) -> None:
+        """
+        Inserts the bits of the huffman encoding into the bit buffer.
+        :param bit_buffer: A bit buffer that the huffman encoding's bits will be inserted to.
+        """
+        # Type check:
+        if not isinstance(bit_buffer, BitBuffer):
+            raise TypeError(f"Expected a BitBuffer object, got {type(bit_buffer)}")
+
+        # Insert the bits:
+        for i in range(self.bit_length - 1, -1, -1):
+            current_bit = (self.encoding >> i) & 1
+            bit_buffer.insert_bit(current_bit)
 
 
 def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int]:
