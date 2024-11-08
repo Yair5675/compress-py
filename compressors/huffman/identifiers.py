@@ -1,3 +1,4 @@
+import util
 from util.bitbuffer import BitBuffer
 
 
@@ -36,15 +37,15 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int
     for i in range(identifiers_count):
         try:
             # Get the value that's encoded:
-            original_value = __read_bits(bit_stream, bit_idx, 8)
+            original_value = util.read_bits(bit_stream, bit_idx, 8)
             bit_idx += 8
 
             # Get the length of the huffman encoding in bits (next 4 bits):
-            encoding_len = __read_bits(bit_stream, bit_idx, 4)
+            encoding_len = util.read_bits(bit_stream, bit_idx, 4)
             bit_idx += 4
 
             # Get the actual encoding:
-            encoding = __read_bits(bit_stream, bit_idx, encoding_len)
+            encoding = util.read_bits(bit_stream, bit_idx, encoding_len)
             bit_idx += encoding_len
 
             # Insert to dictionary:
@@ -53,33 +54,6 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int
             raise InvalidIdentifiersFormat()
 
     return identifiers, bit_idx
-
-
-def __read_bits(bitstream: bytes, offset: int, bits_num: int) -> int:
-    """
-    Reads the specified number of bits from the bitstream.
-    :param bitstream: A collection of bits represented as a bytes object.
-    :param offset: The offset from the start of the stream that the function will start reading from.
-    :param bits_num: The number of bits that will be returned. The maximum possible bits are 32, above that bits will
-                     be deleted from the result.
-    :return: The specified bits in the stream as an integer. The last bit requested will be stored in the integer's
-             least significant bit.
-    :raises IndexError: If offset + bits_num > 8 * len(bitstream)
-    """
-    # Check index:
-    if offset + bits_num > 8 * len(bitstream):
-        raise IndexError("Requested bit range exceeds bitstream size.")
-
-    # Initialize the result:
-    result: int = 0
-
-    # Read each bit:
-    for i in range(bits_num):
-        byte_idx, bit_idx = (offset + i) // 8, (offset + i) % 8
-        current_bit = (bitstream[byte_idx] >> (7 - bit_idx)) & 1
-        result = ((result << 1) | current_bit) & 0xFFFFFFFF
-
-    return result
 
 
 def turn_identifiers_into_bytes(identifiers: dict[bytes, int]) -> bytes:
