@@ -33,7 +33,7 @@ class HuffmanEncoding:
             bit_buffer.insert_bit(current_bit)
 
 
-def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int]:
+def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[HuffmanEncoding, bytes], int]:
     """
     Given a bit stream as a bytes object, the function parses it and assigns every byte value from 0 to 255
     a unique huffman encoding.
@@ -46,7 +46,7 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int
                                       of byte values to huffman encodings as a bit stream.
     """
     # Initialize the dictionary:
-    identifiers: dict[int, bytes] = {}
+    identifiers: dict[HuffmanEncoding, bytes] = {}
 
     # Empty bytes case:
     if len(bit_stream) == 0:
@@ -72,7 +72,7 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int
             bit_idx += encoding_len
 
             # Insert to dictionary:
-            identifiers[encoding] = bytes([original_value])
+            identifiers[HuffmanEncoding(encoding_len, encoding)] = bytes([original_value])
         except IndexError:
             raise InvalidIdentifiersFormat()
 
