@@ -1,8 +1,9 @@
+import util
 from .tree import HuffmanTree
 from collections import Counter
 from compressors import Compressor
-from util.bitbuffer import BitBuffer
-from identifiers import turn_identifiers_into_bytes
+import compressors.huffman.identifiers
+from util.bitbuffer import BitBuffer, FULL_INT_MASK
 
 
 class HuffmanCompressor(Compressor):
@@ -29,7 +30,7 @@ class HuffmanCompressor(Compressor):
         bit_buffer: BitBuffer = BitBuffer()
 
         # Encode the huffman encodings:
-        encodings_stream: bytes = turn_identifiers_into_bytes(encoded_bytes)
+        encodings_stream: bytes = identifiers.turn_identifiers_into_bytes(encoded_bytes)
         for stream_byte_val in encodings_stream:
             bit_buffer.insert_byte(bytes([stream_byte_val]))
 
@@ -48,4 +49,25 @@ class HuffmanCompressor(Compressor):
         :param compressed_data: Data that was compressed using the HuffmanCompressor class.
         :return: The decompressed bytes of the given data.
         """
-        pass
+        # Type check:
+        if not isinstance(compressed_data, bytes):
+            raise TypeError(f'Expected type bytes, got {type(compressed_data)} instead')
+
+        # Get encodings from the start of the data:
+        encodings, data_start_idx = identifiers.get_identifiers_from_bytes(compressed_data)
+
+        # Initialize a bit buffer and a variable holding the current encoded part:
+        buffer: BitBuffer = BitBuffer()
+        encoded_key: int = 0
+        offset: int = data_start_idx
+
+        # Add the original byte values based on the currently held encoded_key:
+        while offset < 8 * len(compressed_data):
+            encoded_key = (encoded_key << 1) | util.get_bit(compressed_data, offset)
+            encoded_key &= FULL_INT_MASK
+
+            original_byte: bytes = encodings.get(encoded_key)
+            if original_byte is not None:
+                buffer.insert_byte(original_byte)
+
+        return bytes(buffer)
