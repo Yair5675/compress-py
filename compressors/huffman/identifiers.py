@@ -1,4 +1,5 @@
 import util
+from typing import Union
 from dataclasses import dataclass
 from util.bitbuffer import BitBuffer
 
@@ -11,7 +12,7 @@ class InvalidIdentifiersFormat(Exception):
         super().__init__(message)
 
 
-@dataclass
+@dataclass(frozen=True)
 class HuffmanEncoding:
     # The length of the encoding in bits (necessary in case the encoding starts with 0):
     bit_length: int
@@ -31,6 +32,21 @@ class HuffmanEncoding:
         for i in range(self.bit_length - 1, -1, -1):
             current_bit = (self.encoding >> i) & 1
             bit_buffer.insert_bit(current_bit)
+
+    def __add__(self, other: Union['HuffmanEncoding', int]) -> 'HuffmanEncoding':
+        INT_32_MASK = 0xFFFFFFFF
+        if isinstance(other, int):
+            if other == 0:
+                return HuffmanEncoding(min(32, self.bit_length + 1), (self.encoding << 1) & INT_32_MASK)
+            elif other == 1:
+                return HuffmanEncoding(min(32, self.bit_length + 1), ((self.encoding << 1) | 1) & INT_32_MASK)
+            else:
+                raise ValueError(f"Can only add a bit value to the huffman encoding (got {other})")
+        elif isinstance(other, HuffmanEncoding):
+            return HuffmanEncoding(
+                min(32, self.bit_length + other.bit_length),
+                ((self.encoding << other.bit_length) | other.encoding) & INT_32_MASK
+            )
 
 
 def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[HuffmanEncoding, bytes], int]:
