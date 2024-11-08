@@ -76,7 +76,7 @@ def __read_bits(bitstream: bytes, offset: int, bits_num: int) -> int:
     # Read each bit:
     for i in range(bits_num):
         byte_idx, bit_idx = (offset + i) // 8, (offset + i) % 8
-        current_bit = (bitstream[byte_idx] >> (8 - bit_idx)) & 1
+        current_bit = (bitstream[byte_idx] >> (7 - bit_idx)) & 1
         result = ((result << 1) | current_bit) & 0xFFFFFFFF
 
     return result
