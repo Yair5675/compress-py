@@ -1,5 +1,6 @@
 from queue import PriorityQueue
 from typing import Optional, Sequence
+from compressors.huffman.identifiers import HuffmanEncoding
 
 
 class HuffmanTree:
@@ -148,30 +149,27 @@ class HuffmanTree:
         """
         Given the current huffman tree, the method assigns each byte value inside it a huffman encoding - a potentially
         shorter value based on the structure of the tree.
-        The returned dictionary uses the original byte values as keys, and the shorter encodings as values. Pay
-        attention that the encodings may be more than one byte long, which is why they are represented as an integer
-        (which allows up to four bytes).
-        Of course, during encoding only the meaningful bits of the shorter identifiers are to be considered.
-        :return: A dictionary mapping between the original byte values and the shorter identifiers that were assigned to
-                 them. Since the huffman tree only refers to byte values, the maximum amount of entries in the dictionary
-                 is 256.
+        The returned dictionary uses the original byte values as keys, and the huffman encodings as values.
+        :return: A dictionary mapping between the original byte values and the shorter huffman encodings that were
+                 assigned to them. Since the huffman tree only refers to byte values, the maximum amount of entries in
+                 the dictionary is 256.
         """
         # Create the dictionary:
-        identifiers: dict[bytes, int] = {}
+        encodings: dict[bytes, HuffmanEncoding] = {}
 
         # Use recursion to find leaf nodes:
-        def dfs(node: Optional[HuffmanTree.Node], identifier: int):
+        def dfs(node: Optional[HuffmanTree.Node], code: int, depth: int):
             if node is not None:
-                # if it's a leaf, assign an identifier
+                # if it's a leaf, assign an encoding:
                 if node.is_leaf():
-                    identifiers[node.char] = identifier
+                    encodings[node.char] = HuffmanEncoding(depth, code)
                 # If not, assign 0 to left and 1 to right:
                 else:
-                    dfs(node.left, identifier << 1)
-                    dfs(node.right, (identifier << 1) | 1)
+                    dfs(node.left, code << 1, depth + 1)
+                    dfs(node.right, (code << 1) | 1, depth + 1)
 
-        dfs(self.root, 0)
-        return identifiers
+        dfs(self.root, 0, 1)
+        return encodings
 
     @property
     def root(self) -> Optional['HuffmanTree.Node']:
