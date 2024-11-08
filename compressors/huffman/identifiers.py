@@ -49,7 +49,7 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int
             bit_idx += encoding_len
 
             # Insert to dictionary:
-            identifiers[encoding] = original_value
+            identifiers[encoding] = bytes([original_value])
         except IndexError:
             raise InvalidIdentifiersFormat()
 
