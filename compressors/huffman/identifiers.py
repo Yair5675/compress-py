@@ -9,14 +9,15 @@ class InvalidIdentifiersFormat(Exception):
         super().__init__(message)
 
 
-def get_identifiers_from_bytes(bit_stream: bytes) -> dict[int, bytes]:
+def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[int, bytes], int]:
     """
     Given a bit stream as a bytes object, the function parses it and assigns every byte value from 0 to 255
     a unique huffman encoding.
     The returned dictionary uses the huffman encodings as keys, and the original byte values as values.
     :param bit_stream: A sequence of bytes that represent the huffman identifiers according to a pre-determined
                        format.
-    :return: A dictionary that maps huffman encodings to normal byte values.
+    :return: A dictionary that maps huffman encodings to normal byte values, and the encoding bits' end index (the index
+             of the first bit that doesn't belong to the identifiers' bits).
     :raises InvalidIdentifiersFormat: If the bitstream doesn't abide by the format used when representing the mapping
                                       of byte values to huffman encodings as a bit stream.
     """
@@ -25,7 +26,7 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> dict[int, bytes]:
 
     # Empty bytes case:
     if len(bit_stream) == 0:
-        return identifiers
+        return identifiers, 0
 
     # First byte is the number of identifiers encoded (minus one):
     identifiers_count = bit_stream[0] + 1
@@ -51,7 +52,7 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> dict[int, bytes]:
         except IndexError:
             raise InvalidIdentifiersFormat()
 
-    return identifiers
+    return identifiers, bit_idx
 
 
 def __read_bits(bitstream: bytes, offset: int, bits_num: int) -> int:
