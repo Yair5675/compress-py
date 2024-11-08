@@ -33,6 +33,12 @@ class HuffmanTree:
         def __lt__(self, other: 'HuffmanTree.Node') -> bool:
             return self.frequency < other.frequency
 
+        def __str__(self):
+            if self.char is None:
+                return str(self.left) + str(self.right)
+            else:
+                return chr(self.char[0])
+
         def is_leaf(self) -> bool:
             """
             Checks if the current node is a leaf node.
@@ -128,7 +134,8 @@ class HuffmanTree:
         while nodes_queue.qsize() >= 2:
             # Construct a parent - left child will have a smaller frequency:
             a, b = nodes_queue.get_nowait(), nodes_queue.get_nowait()
-            left, right = min(a, b), max(a, b)
+            left = min(a, b)
+            right = b if left is a else a
             parent = HuffmanTree.Node(None, left.frequency + right.frequency, left, right)
 
             # Return the parent to the queue:
