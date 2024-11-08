@@ -114,7 +114,7 @@ def __insert_identifier_to_buffer(byte_val: bytes, short_encoding: int, buffer: 
     buffer.insert_byte(byte_val)
 
     # Insert the number of bits the short encoding takes up as a 4 bit value:
-    identifier_bits_len = short_encoding.bit_length() & 0xF
+    identifier_bits_len = max(1, short_encoding.bit_length() & 0xF)
     for i in range(3, -1, -1):
         buffer.insert_bit((identifier_bits_len >> i) & 1)
 
