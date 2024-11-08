@@ -69,5 +69,7 @@ class HuffmanCompressor(Compressor):
             original_byte: bytes = encodings.get(encoded_key)
             if original_byte is not None:
                 buffer.insert_byte(original_byte)
+                encoded_key = 0
+            offset += 1
 
         return bytes(buffer)
