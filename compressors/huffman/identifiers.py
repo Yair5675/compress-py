@@ -76,9 +76,6 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[HuffmanEncoding,
             bit_idx += encoding_len
 
             # Insert to dictionary:
-            if HuffmanEncoding(encoding_len, encoding) in identifiers:
-                print(identifiers)
-                print(identifiers[HuffmanEncoding(encoding_len, encoding)])
             identifiers[HuffmanEncoding(encoding_len, encoding)] = bytes([original_value])
         except IndexError:
             raise InvalidIdentifiersFormat()
