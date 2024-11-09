@@ -34,6 +34,14 @@ class HuffmanCompressor(Compressor):
             encoding: identifiers.HuffmanEncoding = encoded_bytes[bytes([byte_val])]
             encoding.load_to_buffer(bit_buffer)
 
+        # Since the compressed data's bit count may not be divisible by 8, zeroes will be added to its end. This could
+        # add data accidentally, so as a precaution, we'll make the last byte equal the number of zeroes that were added
+        # to the compressed data:
+        added_zeroes = (8 - len(bit_buffer) % 8) % 8
+        for i in range(added_zeroes):
+            bit_buffer.insert_bit(0)
+        bit_buffer.insert_byte(bytes([added_zeroes]))
+
         return bytes(bit_buffer)
 
     def decode(self, compressed_data: bytes) -> bytes:
@@ -51,13 +59,18 @@ class HuffmanCompressor(Compressor):
         # Get encodings from the start of the data:
         encodings, data_start_idx = identifiers.get_identifiers_from_bytes(compressed_data)
 
+        # Get the amount of padding added to the end of the compressed data:
+        padding_length = compressed_data[-1]
+
         # Initialize a bit buffer and a variable holding the current encoded part:
         buffer: BitBuffer = BitBuffer()
         encoded_key: identifiers.HuffmanEncoding = identifiers.HuffmanEncoding(0, 0)
         offset: int = data_start_idx
 
-        # Add the original byte values based on the currently held encoded_key:
-        while offset < 8 * len(compressed_data):
+        # Go over the bits. We skip the last byte that contains the padding length (the -1 in the parenthesis), and skip
+        # the padding itself (-padding_length):
+        while offset < 8 * (len(compressed_data) - 1) - padding_length:
+            # Add the original byte values based on the currently held encoded_key:
             encoded_key += util.get_bit(compressed_data, offset)
 
             original_byte: bytes = encodings.get(encoded_key)
