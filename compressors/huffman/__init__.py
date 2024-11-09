@@ -3,7 +3,7 @@ from .tree import HuffmanTree
 from collections import Counter
 from compressors import Compressor
 import compressors.huffman.identifiers
-from util.bitbuffer import BitBuffer, FULL_INT_MASK
+from util.bitbuffer import BitBuffer
 
 
 class HuffmanCompressor(Compressor):
@@ -24,7 +24,7 @@ class HuffmanCompressor(Compressor):
 
         # Create the huffman tree and produce identifiers from it:
         huffman_tree = HuffmanTree(frequencies)
-        encoded_bytes: dict[bytes, int] = huffman_tree.get_encodings()
+        encoded_bytes: dict[bytes, identifiers.HuffmanEncoding] = huffman_tree.get_encodings()
 
         # Create a buffer that will store the compressed bits:
         bit_buffer: BitBuffer = BitBuffer()
@@ -36,8 +36,8 @@ class HuffmanCompressor(Compressor):
 
         # Replace byte values with their huffman encoding:
         for byte_val in input_data:
-            encoding: int = encoded_bytes[bytes([byte_val])]
-            bit_buffer.insert_int(encoding)
+            encoding: identifiers.HuffmanEncoding = encoded_bytes[bytes([byte_val])]
+            encoding.load_to_buffer(bit_buffer)
 
         return bytes(bit_buffer)
 
@@ -58,18 +58,17 @@ class HuffmanCompressor(Compressor):
 
         # Initialize a bit buffer and a variable holding the current encoded part:
         buffer: BitBuffer = BitBuffer()
-        encoded_key: int = 0
+        encoded_key: identifiers.HuffmanEncoding = identifiers.HuffmanEncoding(0, 0)
         offset: int = data_start_idx
 
         # Add the original byte values based on the currently held encoded_key:
         while offset < 8 * len(compressed_data):
-            encoded_key = (encoded_key << 1) | util.get_bit(compressed_data, offset)
-            encoded_key &= FULL_INT_MASK
+            encoded_key += util.get_bit(compressed_data, offset)
 
             original_byte: bytes = encodings.get(encoded_key)
             if original_byte is not None:
                 buffer.insert_byte(original_byte)
-                encoded_key = 0
+                encoded_key = identifiers.HuffmanEncoding(0, 0)
             offset += 1
 
         return bytes(buffer)
