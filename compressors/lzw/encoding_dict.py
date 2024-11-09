@@ -90,10 +90,6 @@ class EncodingDict:
         return len(self.__keys_set)
 
     def contains_key(self, key: bytes) -> bool:
-        # Type checking...
-        EncodingDict.__validate_query(key)
-
-        # NOW check:
         is_ascii_value = len(key) == 1 and ord(key) < 256
         return is_ascii_value or key in self.__keys_set
 
