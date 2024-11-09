@@ -141,6 +141,13 @@ class BitBuffer:
         self.__current_int = 0
         self.__bit_idx = 0
 
+    def __len__(self) -> int:
+        """
+        Calculates and returns the number of bits held in the buffer.
+        :return: The number of bits held in the buffer.
+        """
+        return 32 * len(self.__saved_data) + self.__bit_idx
+
     def __bytes__(self):
         """
         Extracts the bits saved in the buffer as a bytes object. The order in which the bits were inserted into the
