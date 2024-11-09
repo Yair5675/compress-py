@@ -27,12 +27,7 @@ class HuffmanCompressor(Compressor):
         encoded_bytes: dict[bytes, identifiers.HuffmanEncoding] = huffman_tree.get_encodings()
 
         # Create a buffer that will store the compressed bits:
-        bit_buffer: BitBuffer = BitBuffer()
-
-        # Encode the huffman encodings:
-        encodings_stream: bytes = identifiers.turn_identifiers_into_bytes(encoded_bytes)
-        for stream_byte_val in encodings_stream:
-            bit_buffer.insert_byte(bytes([stream_byte_val]))
+        bit_buffer: BitBuffer = identifiers.turn_identifiers_into_bits(encoded_bytes)
 
         # Replace byte values with their huffman encoding:
         for byte_val in input_data:

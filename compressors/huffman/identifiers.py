@@ -98,11 +98,11 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[HuffmanEncoding,
     return identifiers, bit_idx
 
 
-def turn_identifiers_into_bytes(identifiers: dict[bytes, HuffmanEncoding]) -> bytes:
+def turn_identifiers_into_bits(identifiers: dict[bytes, HuffmanEncoding]) -> BitBuffer:
     """
     Given a dictionary that maps byte values from 0 to 255 to huffman encodings, the function produces a bit stream
-    that contains those encodings. The bit stream is saved in python as a bytes object.
-    The stream's length will vary depending on the encodings, in order to save space as much as possible.
+    that contains those encodings. The stream's length will vary depending on the encodings, in order to save as much
+    space as possible.
 
     The stream's format is the following:
     The first byte will always contain the number of encodings in the stream. There are 256 possible encodings (in case
@@ -118,7 +118,7 @@ def turn_identifiers_into_bytes(identifiers: dict[bytes, HuffmanEncoding]) -> by
     be stored.
 
     :param identifiers: A dictionary mapping regular byte values to huffman encodings.
-    :return: A bytes object that encodes these encodings.
+    :return: A BitBuffer object holding the bits that describe the huffman encodings.
     :raises TypeError: If the argument isn't a dictionary mapping bytes to HuffmanEncoding objects.
     :raises ValueError: If the amount of entries exceeds 256, or if the key of one of the entries contains multiple
                         bytes (only one is allowed).
@@ -141,7 +141,7 @@ def turn_identifiers_into_bytes(identifiers: dict[bytes, HuffmanEncoding]) -> by
     for byte_val, short_encoding in identifiers.items():
         __insert_identifier_to_buffer(byte_val, short_encoding, bit_buffer)
 
-    return bytes(bit_buffer)
+    return bit_buffer
 
 
 def __insert_identifier_to_buffer(byte_val: bytes, short_encoding: HuffmanEncoding, buffer: BitBuffer) -> None:
