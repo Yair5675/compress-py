@@ -4,14 +4,8 @@ def get_bit(b: bytes, offset: int) -> int:
     :param b: The bytes object that the bit will be extracted from.
     :param offset: The offset of the bit from the start of the bytes object.
     :return: The value of the bit at the given offset.
-    :raises IndexError: If offset is larger than the amount of bits in the bytes object.
     """
-    # Check index:
-    if offset >= 8 * len(b):
-        raise IndexError(f"Offset {offset} is out of bounds of bytes object with {len(b)} bytes")
-
-    byte_idx, bit_idx = offset // 8, offset % 8
-    return (b[byte_idx] >> (7 - bit_idx)) & 1
+    return (b[offset // 8] >> (7 - (offset % 8))) & 1
 
 
 def read_bits(bitstream: bytes, offset: int, bits_num: int) -> int:
