@@ -32,23 +32,6 @@ class BitBuffer:
         self.__current_int: int = 0
         self.__bit_idx = 0
 
-    def insert_bit(self, bit: int) -> 'BitBuffer':
-        """
-        Inserts the first (least significant) bit of the given integer into the object.
-        :param bit: An integer whose first bit will be inserted into the object. Although this value is an integer,
-                    it must equal either 0 or 1.
-        :return: The current BitBuffer object, in order to support the builder pattern.
-        """
-        # Insert the bit:
-        self.__current_int |= ((bit & 1) << (31 - self.__bit_idx)) & FULL_INT_MASK
-        self.__bit_idx += 1
-
-        # In case we wrote enough to fill the entire integer, insert it to the deque and reset it:
-        if self.__bit_idx == 32:
-            self.__save_current_int()
-
-        return self
-
     def insert_bits(self, bits_container: int, bits_num: int) -> 'BitBuffer':
         """
         Inserts a variable amount of bits into the buffer.
@@ -79,82 +62,6 @@ class BitBuffer:
             self.__save_current_int()
             self.__current_int = (bits_container << (32 - next_int_bits_count)) & FULL_INT_MASK
             self.__bit_idx = bits_num - free_bits
-
-        return self
-
-    def insert_byte(self, byte: bytes) -> 'BitBuffer':
-        """
-        Inserts a single byte into the bitbuffer.
-        Note that, in terms of ordering, the byte's most significant bit is inserted first, and the least significant
-        last.
-        :param byte: A bytes object holding A SINGLE byte. That byte value will be inserted into the buffer.
-        :return: The current BitBuffer object, in order to support the builder pattern.
-        :raises TypeError: If the given byte value is not of type `bytes`.
-        :raises ValueError: If the bytes object holds more than one byte.
-        """
-        # Type and value check:
-        if not isinstance(byte, bytes):
-            raise TypeError(f"Expected bytes, got {type(byte)} instead")
-        elif len(byte) != 1:
-            raise ValueError(f"Bytes object must hold a single byte - got {len(byte)} instead")
-
-        # Convert to integer:
-        byte_val: int = byte[0]
-
-        # Insert as many bits as possible into the current integer:
-        free_bits = 32 - self.__bit_idx
-        if free_bits > 8:
-            self.__current_int |= (byte_val << (free_bits - 8)) & FULL_INT_MASK
-            self.__bit_idx += 8
-        else:
-            self.__current_int |= byte_val >> (8 - free_bits)
-
-            # Save the current integer and add the remaining bits to the next one:
-            self.__save_current_int()
-            self.__current_int = (byte_val << (24 + free_bits)) & FULL_INT_MASK
-            self.__bit_idx = 8 - free_bits
-
-        return self
-
-    def insert_int(self, integer: int, redundant_bits: bool = False) -> 'BitBuffer':
-        """
-        Inserts the bits stored in the integer into the buffer, where the most significant bit is inserted first, and
-        the least significant last.
-        If redundant_bits is True, the redundant zero bits stores in the integer are added to the buffer as well.
-        :param integer: The integer whose bits will be saved in the buffer.
-        :param redundant_bits: A flag indicating whether the method should also insert the redundant bits of the integer
-                               (0 bits at the integer start) into the buffer, default is False (do not insert them).
-        :return: The current BitBuffer object, in order to support the builder pattern.
-        :raises TypeError: If `integer` is not of type int or `redundant_bits` is not bool.
-        """
-        # Type check:
-        if not isinstance(integer, int):
-            raise TypeError(f"Expected int, got {type(integer)} instead")
-        elif not isinstance(redundant_bits, bool):
-            raise TypeError(f"Expected bool, got {type(redundant_bits)} instead")
-
-        # Convert to the 4 bytes of the integer:
-        integer_bytes = integer.to_bytes(length=4, byteorder="big", signed=False)
-
-        # If they want the unnecessary bits as well, insert them as 4 bytes:
-        if redundant_bits:
-            for byte in integer_bytes:
-                self.insert_byte(bytes([byte]))
-            return self
-
-        # Shift the integer to bring important bits to the integer's most significant bit:
-        necessary_bits = integer.bit_length()
-        integer = (integer << 32 - necessary_bits) & FULL_INT_MASK
-
-        # Add bits until the remaining bits can be added as bytes:
-        for i in range(0, necessary_bits % 8):
-            self.insert_bit(integer >> 31)
-            integer = (integer << 1) & FULL_INT_MASK
-
-        # Add the rest as bytes:
-        for i in range(0, necessary_bits // 8):
-            self.insert_byte(bytes([integer >> 24]))
-            integer = (integer << 8) & FULL_INT_MASK
 
         return self
 

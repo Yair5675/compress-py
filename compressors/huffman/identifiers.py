@@ -120,7 +120,7 @@ def turn_identifiers_into_bits(identifiers: dict[bytes, HuffmanEncoding]) -> Bit
 
     # Write the number of identifiers minus 1:
     identifiers_count = len(identifiers) - 1
-    bit_buffer.insert_byte(bytes([identifiers_count]))
+    bit_buffer.insert_bits(identifiers_count, 8)
 
     # Insert the identifiers:
     for byte_val, short_encoding in identifiers.items():
@@ -138,10 +138,10 @@ def __insert_identifier_to_buffer(byte_val: bytes, short_encoding: HuffmanEncodi
     :param buffer: The buffer that the encoding will be inserted into.
     """
     # Insert the byte value:
-    buffer.insert_byte(byte_val)
+    buffer.insert_bits(byte_val[0], 8)
 
     # Insert the number of bits the short encoding takes up as a full byte:
-    buffer.insert_byte(bytes([short_encoding.bit_length & 0xFF]))
+    buffer.insert_bits(short_encoding.bit_length, 8)
 
     # Insert the actual bits of the encoding:
     short_encoding.load_to_buffer(buffer)
