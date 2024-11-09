@@ -71,12 +71,15 @@ class HuffmanCompressor(Compressor):
         # the padding itself (-padding_length):
         while offset < 8 * (len(compressed_data) - 1) - padding_length:
             # Add the original byte values based on the currently held encoded_key:
-            encoded_key += util.get_bit(compressed_data, offset)
+            current_bit = util.get_bit(compressed_data, offset)
+            encoded_key.bit_length += 1
+            encoded_key.encoding = (encoded_key.encoding << 1) | current_bit
 
             original_byte: bytes = encodings.get(encoded_key)
             if original_byte is not None:
                 buffer.insert_byte(original_byte)
-                encoded_key = identifiers.HuffmanEncoding(0, 0)
+                encoded_key.bit_length = 0
+                encoded_key.encoding = 0
             offset += 1
 
         return bytes(buffer)

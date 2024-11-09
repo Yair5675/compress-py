@@ -12,7 +12,7 @@ class InvalidIdentifiersFormat(Exception):
         super().__init__(message)
 
 
-@dataclass(frozen=True)
+@dataclass
 class HuffmanEncoding:
     # The length of the encoding in bits (necessary in case the encoding starts with 0):
     bit_length: int
@@ -35,6 +35,9 @@ class HuffmanEncoding:
 
     def __repr__(self) -> str:
         return str(bin(self.encoding)[2:]).zfill(self.bit_length)
+
+    def __hash__(self):
+        return hash((self.encoding, self.bit_length))
 
     def __add__(self, other: Union['HuffmanEncoding', int]) -> 'HuffmanEncoding':
         INT_32_MASK = 0xFFFFFFFF
