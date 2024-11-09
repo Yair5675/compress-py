@@ -28,9 +28,7 @@ class HuffmanEncoding:
             raise TypeError(f"Expected a BitBuffer object, got {type(bit_buffer)}")
 
         # Insert the bits:
-        for i in range(self.bit_length - 1, -1, -1):
-            current_bit = (self.encoding >> i) & 1
-            bit_buffer.insert_bit(current_bit)
+        bit_buffer.insert_bits(self.encoding, self.bit_length)
 
     def __repr__(self) -> str:
         return str(bin(self.encoding)[2:]).zfill(self.bit_length)
