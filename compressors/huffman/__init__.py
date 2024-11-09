@@ -38,9 +38,7 @@ class HuffmanCompressor(Compressor):
         # add data accidentally, so as a precaution, we'll make the last byte equal the number of zeroes that were added
         # to the compressed data:
         added_zeroes = (8 - len(bit_buffer) % 8) % 8
-        for i in range(added_zeroes):
-            bit_buffer.insert_bit(0)
-        bit_buffer.insert_byte(bytes([added_zeroes]))
+        bit_buffer.insert_bits(added_zeroes, 8 + added_zeroes)
 
         return bytes(bit_buffer)
 
