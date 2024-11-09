@@ -33,6 +33,9 @@ class HuffmanEncoding:
             current_bit = (self.encoding >> i) & 1
             bit_buffer.insert_bit(current_bit)
 
+    def __repr__(self) -> str:
+        return str(bin(self.encoding)[2:]).zfill(self.bit_length)
+
     def __add__(self, other: Union['HuffmanEncoding', int]) -> 'HuffmanEncoding':
         INT_32_MASK = 0xFFFFFFFF
         if isinstance(other, int):
