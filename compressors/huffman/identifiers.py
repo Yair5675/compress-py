@@ -82,15 +82,18 @@ def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[HuffmanEncoding,
             original_value = util.read_bits(bit_stream, bit_idx, 8)
             bit_idx += 8
 
-            # Get the length of the huffman encoding in bits (next 4 bits):
-            encoding_len = util.read_bits(bit_stream, bit_idx, 4)
-            bit_idx += 4
+            # Get the length of the huffman encoding in bits (next byte bits):
+            encoding_len = util.read_bits(bit_stream, bit_idx, 8)
+            bit_idx += 8
 
             # Get the actual encoding:
             encoding = util.read_bits(bit_stream, bit_idx, encoding_len)
             bit_idx += encoding_len
 
             # Insert to dictionary:
+            if HuffmanEncoding(encoding_len, encoding) in identifiers:
+                print(identifiers)
+                print(identifiers[HuffmanEncoding(encoding_len, encoding)])
             identifiers[HuffmanEncoding(encoding_len, encoding)] = bytes([original_value])
         except IndexError:
             raise InvalidIdentifiersFormat()
@@ -155,10 +158,8 @@ def __insert_identifier_to_buffer(byte_val: bytes, short_encoding: HuffmanEncodi
     # Insert the byte value:
     buffer.insert_byte(byte_val)
 
-    # Insert the number of bits the short encoding takes up as a 4 bit value:
-    identifier_bits_len = short_encoding.bit_length & 0xF
-    for i in range(3, -1, -1):
-        buffer.insert_bit((identifier_bits_len >> i) & 1)
+    # Insert the number of bits the short encoding takes up as a full byte:
+    buffer.insert_byte(bytes([short_encoding.bit_length & 0xFF]))
 
     # Insert the actual bits of the encoding:
     short_encoding.load_to_buffer(buffer)
