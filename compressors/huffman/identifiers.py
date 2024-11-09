@@ -39,10 +39,8 @@ class HuffmanEncoding:
     def __add__(self, other: Union['HuffmanEncoding', int]) -> 'HuffmanEncoding':
         INT_32_MASK = 0xFFFFFFFF
         if isinstance(other, int):
-            if other == 0:
-                return HuffmanEncoding(min(32, self.bit_length + 1), (self.encoding << 1) & INT_32_MASK)
-            elif other == 1:
-                return HuffmanEncoding(min(32, self.bit_length + 1), ((self.encoding << 1) | 1) & INT_32_MASK)
+            if other == 0 or other == 1:
+                return HuffmanEncoding(min(32, self.bit_length + 1), ((self.encoding << 1) | other) & INT_32_MASK)
             else:
                 raise ValueError(f"Can only add a bit value to the huffman encoding (got {other})")
         elif isinstance(other, HuffmanEncoding):
