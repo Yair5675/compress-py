@@ -38,15 +38,7 @@ class BitBuffer:
         :param bit: An integer whose first bit will be inserted into the object. Although this value is an integer,
                     it must equal either 0 or 1.
         :return: The current BitBuffer object, in order to support the builder pattern.
-        :raises TypeError: If bit isn't of type int.
-        :raises ValueError: If the bit given is not 1 nor 0.
         """
-        # Type and value check:
-        if not isinstance(bit, int):
-            raise TypeError(f"Expected int, got {type(bit)} instead")
-        elif bit != 0 and bit != 1:
-            raise ValueError(f"Bit value must equal 0 or 1, got {bit} instead")
-
         # Insert the bit:
         self.__current_int |= ((bit & 1) << (31 - self.__bit_idx)) & FULL_INT_MASK
         self.__bit_idx += 1
