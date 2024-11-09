@@ -49,6 +49,39 @@ class BitBuffer:
 
         return self
 
+    def insert_bits(self, bits_container: int, bits_num: int) -> 'BitBuffer':
+        """
+        Inserts a variable amount of bits into the buffer.
+        :param bits_container: An integer containing the bits that will be inserted into the buffer. Pay attention that
+                               the bits that will be inserted are the least significant bits, from the most significant
+                               of them to the least.
+                               For example:
+                               >>> buffer = BitBuffer()
+                               >>> buffer.insert_bits(bits_container=0b101010, bits_num=5)
+                               >>> # Buffer now contains the bits "01010", in that order (left to right)
+        :param bits_num: The number of bits to extract from the integer. Must be in range(1, 33).
+        :return: The current BitBuffer object, in order to support the builder pattern.
+        """
+        # Extract the necessary bits only:
+        bits_container &= (1 << bits_num) - 1
+
+        # Insert as many bits as possible into the current integer:
+        free_bits = 32 - self.__bit_idx
+        if free_bits > bits_num:
+            self.__current_int |= (bits_container << (free_bits - bits_num)) & FULL_INT_MASK
+            self.__bit_idx += bits_num
+        else:
+            # Insert what you can into the current integer:
+            next_int_bits_count = bits_num - free_bits
+            self.__current_int |= bits_container >> next_int_bits_count
+
+            # Save the current integer and add the remaining bits to the next one:
+            self.__save_current_int()
+            self.__current_int = (bits_container << (32 - next_int_bits_count)) & FULL_INT_MASK
+            self.__bit_idx = bits_num - free_bits
+
+        return self
+
     def insert_byte(self, byte: bytes) -> 'BitBuffer':
         """
         Inserts a single byte into the bitbuffer.
