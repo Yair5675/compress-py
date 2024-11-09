@@ -1,5 +1,4 @@
 import util
-from typing import Union
 from dataclasses import dataclass
 from util.bitbuffer import BitBuffer
 
@@ -38,19 +37,6 @@ class HuffmanEncoding:
 
     def __hash__(self):
         return hash((self.encoding, self.bit_length))
-
-    def __add__(self, other: Union['HuffmanEncoding', int]) -> 'HuffmanEncoding':
-        INT_32_MASK = 0xFFFFFFFF
-        if isinstance(other, int):
-            if other == 0 or other == 1:
-                return HuffmanEncoding(min(32, self.bit_length + 1), ((self.encoding << 1) | other) & INT_32_MASK)
-            else:
-                raise ValueError(f"Can only add a bit value to the huffman encoding (got {other})")
-        elif isinstance(other, HuffmanEncoding):
-            return HuffmanEncoding(
-                min(32, self.bit_length + other.bit_length),
-                ((self.encoding << other.bit_length) | other.encoding) & INT_32_MASK
-            )
 
 
 def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[HuffmanEncoding, bytes], int]:
