@@ -1,5 +1,9 @@
+from cli import main_app
+
+
 def main():
-    pass
+    # Run the app:
+    main_app()
 
 
 if __name__ == '__main__':
