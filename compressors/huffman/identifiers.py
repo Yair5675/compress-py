@@ -34,7 +34,7 @@ class HuffmanEncoding:
         return str(bin(self.encoding)[2:]).zfill(self.bit_length)
 
     def __hash__(self):
-        return hash((self.encoding, self.bit_length))
+        return (self.encoding << 10) | self.bit_length
 
 
 def get_identifiers_from_bytes(bit_stream: bytes) -> tuple[dict[HuffmanEncoding, bytes], int]:
