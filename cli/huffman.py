@@ -1,7 +1,6 @@
 import rich
 import typer
 from pathlib import Path
-from typing import Optional
 from typing_extensions import Annotated
 from compressors.huffman import HuffmanCompressor
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -9,31 +8,35 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 # The huffman sub-app:
 huffman_app = typer.Typer(name="huff", no_args_is_help=True)
 
+# The file extension given to files compressed using the HuffmanCompressor:
+HUFFMAN_FILE_EXTENSION = '.huff'
+
 
 @huffman_app.command(no_args_is_help=True)
 def compress(
         input_path: Annotated[Path, typer.Argument(
-            exists=True, file_okay=True, dir_okay=False, readable=True, writable=True, resolve_path=True,
+            exists=True, file_okay=True, dir_okay=False, readable=True, writable=False, resolve_path=True,
             show_default=False,
-            help="The path to the file that will be compressed"
+            help="The path to the file that will be compressed. It can be any type of file, as long as it is not the "
+                 "provided output file."
         )],
-        output_path: Annotated[Optional[Path], typer.Option(
-            "--output-path", "-o",
+        output_path: Annotated[Path, typer.Argument(
             file_okay=True, dir_okay=False, writable=True, resolve_path=True, show_default=False,
-            help="The path that the program will write the compressed data to. If not provided, the program will write"
-                 " the compressed data to the input file (deleting its original content)."
-        )] = None
+            help=f"The path that the program will write the compressed data to, must end in '{HUFFMAN_FILE_EXTENSION}',"
+                 " and cannot be the input file."
+        )]
 ) -> None:
     """
     Compresses a file using [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman encoding[/link].
+    The compressed data will be saved in the provided output path, and not interfere with the input file's data.
     """
-    # Check if an output file path is provided, and warn in case it isn't:
-    if output_path is None:
-        typer.confirm(
-            "Output file not provided, so compressed data will be written to input file. This will delete the "
-            "original data and relace it with a compressed version of it. Do you want to proceed?", abort=True
-        )
-        output_path = input_path
+    # Check output file's file extension:
+    if output_path.suffix != HUFFMAN_FILE_EXTENSION:
+        raise typer.BadParameter(f"Output file must have the file extension '{HUFFMAN_FILE_EXTENSION}'")
+
+    # Check if the input and output file paths are the same:
+    if input_path == output_path:
+        raise typer.BadParameter("Input file and output file cannot be the same")
 
     # Read uncompressed data:
     with rich.progress.open(input_path, 'rb', description="Reading input file...", transient=True) as input_file:
