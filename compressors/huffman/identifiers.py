@@ -23,11 +23,6 @@ class HuffmanEncoding:
         Inserts the bits of the huffman encoding into the bit buffer.
         :param bit_buffer: A bit buffer that the huffman encoding's bits will be inserted to.
         """
-        # Type check:
-        if not isinstance(bit_buffer, BitBuffer):
-            raise TypeError(f"Expected a BitBuffer object, got {type(bit_buffer)}")
-
-        # Insert the bits:
         bit_buffer.insert_bits(self.encoding, self.bit_length)
 
     def __repr__(self) -> str:
