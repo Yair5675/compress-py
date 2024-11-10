@@ -37,8 +37,9 @@ class HuffmanCompressor(Compressor):
         # Since the compressed data's bit count may not be divisible by 8, zeroes will be added to its end. This could
         # add data accidentally, so as a precaution, we'll make the last byte equal the number of zeroes that were added
         # to the compressed data:
-        added_zeroes = (8 - len(bit_buffer) % 8) % 8
-        bit_buffer.insert_bits(added_zeroes, 8 + added_zeroes)
+        if len(input_data) > 0:
+            added_zeroes = (8 - len(bit_buffer) % 8) % 8
+            bit_buffer.insert_bits(added_zeroes, 8 + added_zeroes)
 
         return bytes(bit_buffer)
 
@@ -53,6 +54,10 @@ class HuffmanCompressor(Compressor):
         # Type check:
         if not isinstance(compressed_data, bytes):
             raise TypeError(f'Expected type bytes, got {type(compressed_data)} instead')
+
+        # If it's nothing, return nothing:
+        if len(compressed_data) == 0:
+            return bytes()
 
         # Get encodings from the start of the data:
         encodings, data_start_idx = identifiers.get_identifiers_from_bytes(compressed_data)
