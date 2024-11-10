@@ -73,8 +73,8 @@ class HuffmanCompressor(Compressor):
             encoded_key.bit_length += 1
             encoded_key.encoding = (encoded_key.encoding << 1) | current_bit
 
-            original_byte: bytes = encodings.get(encoded_key)
-            if original_byte is not None:
+            if encoded_key in encodings:
+                original_byte: bytes = encodings[encoded_key]
                 buffer.insert_bits(original_byte[0], 8)
                 encoded_key.bit_length = 0
                 encoded_key.encoding = 0
