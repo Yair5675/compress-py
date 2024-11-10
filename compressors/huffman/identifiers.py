@@ -103,9 +103,9 @@ def turn_identifiers_into_bits(identifiers: dict[bytes, HuffmanEncoding]) -> Bit
     :raises ValueError: If the amount of entries exceeds 256, or if the key of one of the entries contains multiple
                         bytes (only one is allowed).
     """
-    # If the dictionary is empty, return an empty bytes object:
+    # If the dictionary is empty, return an empty bit buffer object:
     if len(identifiers) == 0:
-        return bytes()
+        return BitBuffer()
 
     # Check that the dictionary has a maximum of 256 entries, and they all contain one byte as key:
     __validate_identifiers_dict(identifiers)
