@@ -4,6 +4,7 @@ from pathlib import Path
 from typing_extensions import Annotated
 from compressors.huffman import HuffmanCompressor
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from compressors.huffman.identifiers import InvalidIdentifiersFormat
 
 # The huffman sub-app:
 huffman_app = typer.Typer(name="huff", no_args_is_help=True)
@@ -27,7 +28,7 @@ def compress(
         )]
 ) -> None:
     """
-    Compresses a file using [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman encoding[/link].
+    Compresses a file using [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman coding[/link].
     The compressed data will be saved in the provided output path, and not interfere with the input file's data.
     """
     # Check output file's file extension:
@@ -58,3 +59,56 @@ def compress(
             output_file.write(encoded_data)
 
         rich.print("[bold green]File compressed successfully![/bold green]")
+
+
+@huffman_app.command(no_args_is_help=True)
+def decompress(input_path: Annotated[Path, typer.Argument(
+            exists=True, file_okay=True, dir_okay=False, readable=True, writable=False, resolve_path=True,
+            show_default=False,
+            help=f"The path to the file that will be decompressed. Its file extension must be '{HUFFMAN_FILE_EXTENSION}'."
+        )],
+        output_path: Annotated[Path, typer.Argument(
+            file_okay=True, dir_okay=False, writable=True, resolve_path=True, show_default=False,
+            help=f"The path that the program will write the decompressed data to. Its file extension can be anything, "
+                 "but it must be different than the input file."
+        )]
+) -> None:
+    """
+    Decompresses a file that was compressed using the program's [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman coding[/link] implementation.
+    The command will only work on this program's implementation of Huffman coding, and will exit unsuccessfully if a file with invalid format will be given to it.
+    """
+    # Check input file's file extension:
+    if input_path.suffix != HUFFMAN_FILE_EXTENSION:
+        raise typer.BadParameter(f"Input file must have the file extension '{HUFFMAN_FILE_EXTENSION}'")
+
+    # Check if the input and output file paths are the same:
+    if input_path == output_path:
+        raise typer.BadParameter("Input file and output file cannot be the same")
+
+    # Read the compressed data:
+    with rich.progress.open(input_path, 'rb', description="Reading compressed file...", transient=True) as input_file:
+        compressed_data: bytes = input_file.read()
+
+    with Progress(
+            SpinnerColumn(spinner_name="bouncingBall"),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True
+    ) as progress:
+        # Try to decode data:
+        progress.add_task(description="Decoding data...", total=None)
+        huffman_compressor = HuffmanCompressor()
+        try:
+            decoded_data: bytes = huffman_compressor.decode(compressed_data)
+
+        # In case a wrong file was given to us:
+        except InvalidIdentifiersFormat:
+            rich.print(f"[red]Invalid '{HUFFMAN_FILE_EXTENSION}' file format[/red]")
+            raise typer.Exit(code=1)
+
+        # Write to output file:
+        else:
+            progress.add_task(description="Writing to output file...", total=None)
+            with open(output_path, 'wb') as output_file:
+                output_file.write(decoded_data)
+
+            rich.print("[bold green]File decompressed successfully![/bold green]")
