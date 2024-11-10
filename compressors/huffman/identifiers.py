@@ -23,7 +23,7 @@ class HuffmanEncoding:
         Inserts the bits of the huffman encoding into the bit buffer.
         :param bit_buffer: A bit buffer that the huffman encoding's bits will be inserted to.
         """
-        bit_buffer.insert_bits(self.encoding, self.bit_length)
+        bit_buffer.insert_bits(self.encoding, max(1, self.bit_length))
 
     def __repr__(self) -> str:
         return str(bin(self.encoding)[2:]).zfill(self.bit_length)
@@ -135,8 +135,8 @@ def __insert_identifier_to_buffer(byte_val: bytes, short_encoding: HuffmanEncodi
     # Insert the byte value:
     buffer.insert_bits(byte_val[0], 8)
 
-    # Insert the number of bits the short encoding takes up as a full byte:
-    buffer.insert_bits(short_encoding.bit_length, 8)
+    # Insert the number of bits the short encoding takes up as a full byte (and make sure bit_length is at least 1):
+    buffer.insert_bits(max(1, short_encoding.bit_length), 8)
 
     # Insert the actual bits of the encoding:
     short_encoding.load_to_buffer(buffer)
