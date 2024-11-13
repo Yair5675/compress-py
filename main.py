@@ -1,9 +1,10 @@
-from cli import main_app
+from cli import CliApp
 
 
 def main():
-    # Run the app:
-    main_app()
+    # Initialize the app and run it:
+    app: CliApp = CliApp(app_name="compress-py")
+    app.run()
 
 
 if __name__ == '__main__':
