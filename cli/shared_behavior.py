@@ -69,4 +69,4 @@ def execute_compressor(
         with open(output_path, 'wb') as output_file:
             output_file.write(output_data)
 
-        rich.print("[bold green]File compressed successfully![/bold green]")
+        rich.print(f"[bold green]File {'' if is_compressing else 'de'}compressed successfully![/bold green]")
