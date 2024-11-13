@@ -1,4 +1,4 @@
-from enum import Enum, auto
+from enum import Enum
 
 
 class TooManyEncodingsException(Exception):
@@ -17,11 +17,11 @@ class OutOfMemoryStrategy(Enum):
     This enum contains different strategies to handle this case.
     """
     # The simplest strategy - if it ever happens, abort the execution:
-    ABORT = auto()
+    ABORT = "ABORT"
 
     # If we run out of memory, stop storing new entries. This hurts compression efficiency:
-    STOP_STORE = auto()
+    STOP_STORE = "STOP_STORE"
 
     # Add just enough memory to complete the algorithm. In practice - this means incrementing the maximum size by one
     # whenever we exceed it:
-    USE_MINIMUM_REQUIRED = auto()
+    USE_MINIMUM_REQUIRED = "USE_MINIMUM_REQUIRED"
