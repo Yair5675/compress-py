@@ -1,8 +1,4 @@
-class TooManyEncodingsException(Exception):
-    def __init__(self, message="The encoding dictionary reached its maximum size"):
-        self.message = message
-        super().__init__(message)
-
+from compressors.lzw.memory_limits import TooManyEncodingsException
 
 class EncodingDict:
     """
