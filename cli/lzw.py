@@ -73,16 +73,18 @@ def decompress(
             help=f"The path that the program will write the decompressed data to. It can be any type of file, but cannot "
                  "be the input file."
         )],
-        max_dict_size: Annotated[int, typer.Argument(
-            min=1, help="The LZW algorithm uses a dictionary during decompression. This parameter controls the maximum "
-                        "amount of entries in this dictionary.\nThe command will fail if not enough entries were given "
-                        "in order to complete the algorithm."
-        )]
 ) -> None:
     """
     Decompresses the input file according to the
     [link=https://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Welch]Lempel-Ziv-Welch[/link] algorithm, and writes
     the output to the output file.
     """
-    compressor = LzwCompressor(max_dict_size, OutOfMemoryStrategy.ABORT)  # Doesn't matter, we only decode
-    execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=False)
+    # During decoding, we don't care about the memory:
+    compressor = LzwCompressor(1, OutOfMemoryStrategy.ABORT)
+
+    # Keep an eye out for ValueError, it is raised for an invalid format:
+    try:
+        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=False)
+    except ValueError:
+        rich.print("[bold red]Invalid data given - cannot complete decompression[/bold red]")
+        typer.Exit(1)
