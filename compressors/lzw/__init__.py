@@ -1,23 +1,29 @@
 from typing import Generator
 from collections import deque
 from compressors import Compressor
-from .lzw_indices import EncodingIndices
-from .encoding_dict import TooManyEncodingsException
+from compressors.lzw.lzw_indices import EncodingIndices
+from compressors.lzw.memory_limits import TooManyEncodingsException, OutOfMemoryStrategy
 
 
 class LzwCompressor(Compressor):
     __slots__ = [
         # The maximum amount of entries that can be saved inside an LZW dictionary:
         '__max_dict_size',
+
+        # The strategy chosen for memory errors in the encoding dictionary:
+        '__mem_strategy'
     ]
 
-    def __init__(self, max_dict_size: int):
+    def __init__(self, max_dict_size: int, memory_strategy: OutOfMemoryStrategy):
         if not isinstance(max_dict_size, int):
             raise TypeError(f"Expected max_dict_size of type int, got {type(max_dict_size)} instead")
         elif max_dict_size <= 0:
             raise ValueError(f"max_dict_size must be positive (got {max_dict_size})")
+        if not isinstance(memory_strategy, OutOfMemoryStrategy):
+            raise TypeError(f"Expected memory_strategy of type OutOfMemoryStrategy, got {type(memory_strategy)} instead")
 
         self.__max_dict_size = max_dict_size
+        self.__mem_strategy = memory_strategy
 
     def encode(self, input_data: bytes) -> bytes:
         """
@@ -33,7 +39,7 @@ class LzwCompressor(Compressor):
             raise TypeError(f'Expected type bytes, got {type(input_data)} instead')
 
         # Parse indices:
-        indices = EncodingIndices(input_data, self.__max_dict_size)
+        indices = EncodingIndices(input_data, self.__max_dict_size, self.__mem_strategy)
 
         # Pad and return them:
         return indices.get_padded_bytes()

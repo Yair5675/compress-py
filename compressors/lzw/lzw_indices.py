@@ -1,5 +1,6 @@
 from collections import deque
-from .encoding_dict import EncodingDict
+from compressors.lzw.encoding_dict import EncodingDict
+from compressors.lzw.memory_limits import OutOfMemoryStrategy
 
 
 class EncodingIndices:
@@ -11,13 +12,16 @@ class EncodingIndices:
         '__indices',
     )
 
-    def __init__(self, input_data: bytes, max_dict_size: int) -> 'EncodingIndices':
+    def __init__(self, input_data: bytes, max_dict_size: int, memory_strategy: OutOfMemoryStrategy) -> 'EncodingIndices':
         """
         Parses the input data into encoding indices inside an LZW dictionary.
         :param input_data: The input that will be compressed into indices.
         :param max_dict_size: The maximum amount of entries the LZW dictionary can contain.
+        :param memory_strategy: In case encoding the data requires more entries than 'max_dict_size' this parameter
+                                informs the method which actions to take.
         :raises TooManyEncodingsException: If not enough memory was given to the encoding dictionary
-                                           in order to complete the algorithm.
+                                           in order to complete the algorithm, and OutOfMemoryStrategy.ABORT was
+                                           provided as an argument.
         """
         # Initialize the dictionary:
         lzw_dict: EncodingDict = EncodingDict(max_dict_size)
@@ -36,7 +40,7 @@ class EncodingIndices:
                 prev_matching = input_data[matching_start_idx:i]
                 self.__indices.append(lzw_dict[prev_matching])
 
-                lzw_dict.insert(current_data)  # This can raise a memory exception
+                lzw_dict.try_insert(current_data, memory_strategy)
                 matching_start_idx = i
 
         # In case the end of the input matched a dictionary value, the loop didn't append it:

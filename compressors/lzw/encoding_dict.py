@@ -1,4 +1,5 @@
-from compressors.lzw.memory_limits import TooManyEncodingsException
+from compressors.lzw.memory_limits import TooManyEncodingsException, OutOfMemoryStrategy
+
 
 class EncodingDict:
     """
@@ -54,17 +55,20 @@ class EncodingDict:
         # If it's of length one, return its ascii value. If not, return the saved value:
         return ord(item) if len(item) == 1 else self.__encoded_values[item]
 
-    def insert(self, key: bytes) -> bool:
+    def try_insert(self, key: bytes, memory_strategy: OutOfMemoryStrategy) -> bool:
         """
         Inserts a key into the dictionary. The index that the key will be mapped to will be
         the smallest unoccupied index found.
         If the key was already saved in the dictionary, nothing will change.
         :param key: The key that will be mapped to an index inside the dictionary.
+        :param memory_strategy: The chosen strategy for handling cases where an insertion is made while the dictionary
+                                is full.
         :return: True if the key was added, false otherwise.
         :raises TypeError: If the key isn't of type bytes
         :raises ValueError: If the key is of length 0.
-        :raises TooManyEncodingsException: If, after the insertion of the key, the amount of entries
-                                           will exceed the allowed amount.
+        :raises TooManyEncodingsException: If, after the insertion of the key, the amount of entries exceeds the allowed
+                                           amount. This is only raised if OutOfMemoryStrategy.ABORT was given to the
+                                           method.
         """
         # Validate key and make sure it isn't already saved:
         self.__validate_query(key)
@@ -73,7 +77,16 @@ class EncodingDict:
 
         # Check if there is enough memory:
         if len(self) >= self.max_size:
-            raise TooManyEncodingsException()
+            match memory_strategy:
+                # Raise an exception:
+                case OutOfMemoryStrategy.ABORT:
+                    raise TooManyEncodingsException()
+                # Do not perform the insertion:
+                case OutOfMemoryStrategy.STOP_STORE:
+                    return False
+                # Increase the maximum size:
+                case OutOfMemoryStrategy.USE_MINIMUM_REQUIRED:
+                    self.__max_size += 1
 
         # Insert the key:
         self.__encoded_values[key] = self.__unoccupied_idx
