@@ -80,8 +80,6 @@ class LzwCompressor(Compressor):
         :param compressed_data: Data that was compressed using the LzwCompressor class.
         :return: The decompressed bytes of the given data.
         :raises ValueError: If the data is not padded correctly and reading indices from it fails.
-        :raises TooManyEncodingsException: If in order to decompress the data, the number of entries
-                                           in the decoder dictionary exceeds the maximum.
         """
         # The decoding dictionary is easier so just use a normal dictionary (and a keys set for faster
         # lookup):
@@ -94,10 +92,6 @@ class LzwCompressor(Compressor):
         last_emitted: bytes = b''
 
         for encoded_idx in LzwCompressor.encoded_indices_iterator(compressed_data):
-            # Check for memory limitations:
-            if encoded_idx - 256 > self.__max_dict_size:
-                raise TooManyEncodingsException()
-
             # Check if the index is in the dictionary (smaller than unoccupied_idx), or is ascii:
             is_ascii, is_in_dict = encoded_idx < 256, encoded_idx < unoccupied_idx
             if is_ascii or is_in_dict:
