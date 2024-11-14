@@ -38,4 +38,25 @@ class RLE(Compressor):
         return bytes(buffer)
 
     def decode(self, compressed_data: bytes) -> bytes:
-        pass
+        """
+        Decodes the compressed data according to the RLE algorithm.
+        :param compressed_data: The data that was compressed by the RLE class.
+        :return: The original content of the data, prior to being compressed according to the RLE algorithm.
+        :raises ValueError: If the compressed data has invalid format (i.e: it was tampered with or compressed according
+                            to a different method).
+        """
+        # The length of the data in bytes has to be even, as for every run there is one byte for the byte value and
+        # another for the repetitions:
+        if len(compressed_data) % 2 == 1:
+            raise ValueError('Invalid data to be decoded by the RLE algorithm')
+
+        # Initialize the buffer:
+        buffer: BitBuffer = BitBuffer()
+
+        # Decode the data:
+        for i in range(0, len(compressed_data), 2):
+            byte_val, repetitions = compressed_data[i], compressed_data[i + 1]
+            for _ in range(repetitions):
+                buffer.insert_bits(byte_val, 8)
+
+        return bytes(buffer)
