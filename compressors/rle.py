@@ -2,7 +2,7 @@ from compressors import Compressor
 from util.bitbuffer import BitBuffer
 
 
-class RLE(Compressor):
+class RleCompressor(Compressor):
     """
     Compression class - Run Length Encoding.
     """
