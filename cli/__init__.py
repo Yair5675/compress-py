@@ -1,4 +1,5 @@
 import typer
+import cli.rle
 import cli.lzw
 import cli.huffman
 from typing import Optional
@@ -53,7 +54,8 @@ class CliApp:
         # A tuple containing the different compression commands and their names:
         compression_algorithms = (
             (huffman.compress, "huffman"),
-            (lzw.compress, "lzw")
+            (lzw.compress, "lzw"),
+            (rle.compress, 'rle')
         )
 
         # Add the compression commands from the different files:
@@ -64,7 +66,8 @@ class CliApp:
         # A tuple containing the different decompression commands:
         decompression_algorithms = (
             (huffman.decompress, "huffman"),
-            (lzw.decompress, "lzw")
+            (lzw.decompress, "lzw"),
+            (rle.decompress, 'rle'),
         )
 
         # Add the decompression commands from the different files:
