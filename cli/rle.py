@@ -27,7 +27,7 @@ def compress(
 ) -> None:
     """
     Compresses the file according to the [link=https://en.wikipedia.org/wiki/Run-length_encoding]Run-Length encoding[/link] algorithm.
-    This is an algorithm based suited for data with many repetitions. If this isn't the case, the compressed data may be larger than the original data.
+    This is an algorithm best suited for data with many repetitions. If this isn't the case, the compressed data may be larger than the original data.
     """
     # Initialize and execute the compressor:
     compressor = RleCompressor()
