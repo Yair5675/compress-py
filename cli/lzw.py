@@ -1,5 +1,6 @@
 import rich
 import typer
+from enum import Enum
 from pathlib import Path
 from typing_extensions import Annotated
 from compressors.lzw import LzwCompressor
@@ -8,6 +9,30 @@ from compressors.lzw.memory_limits import OutOfMemoryStrategy, TooManyEncodingsE
 
 # The file extension given to files compressed using the LZWCompressor:
 LZW_FILE_EXTENSION = '.lzw'
+
+
+class DictionarySize(str, Enum):
+    """
+    Choices for size of LZW dictionary.
+    """
+    SMALL = "SMALL"
+    MEDIUM = "MEDIUM"
+    LARGE = "LARGE"
+    EXTRA_LARGE = "EXTRA_LARGE"
+    CUSTOM = "CUSTOM"  # Prompt the user
+
+    def __int__(self):
+        match self:
+            case DictionarySize.SMALL:
+                return 1_000
+            case DictionarySize.MEDIUM:
+                return 10_000
+            case DictionarySize.LARGE:
+                return 100_000
+            case DictionarySize.EXTRA_LARGE:
+                return 1_000_000
+            case DictionarySize.CUSTOM:
+                return -1
 
 
 # Add the algorithm to the compress and decompress apps:
@@ -23,28 +48,31 @@ def compress(
             help=f"The path that the program will write the compressed data to, must end in '{LZW_FILE_EXTENSION}',"
                  " and cannot be the input file."
         )],
-        max_dict_size: Annotated[int, typer.Argument(
-            min=1, show_default=False,
-            help="The LZW algorithm uses a dictionary during compression. This parameter controls the maximum "
-                 "amount of entries in this dictionary.\nThe command will fail if not enough entries were given "
-                 "in order to complete the algorithm."
-        )],
+        max_dict_size: Annotated[DictionarySize, typer.Option(
+            '--dict_size', '-ds',
+            show_default=True, case_sensitive=False,
+            help="""The maximum size of the dictionary used in the compression algorithm:"""
+                 "\n\n\t"
+                 f"- SMALL: {int(DictionarySize.SMALL):_}"
+                 "\n\n\t"
+                 f"- MEDIUM: {int(DictionarySize.MEDIUM):_}"
+                 "\n\n\t"
+                 f"- LARGE: {int(DictionarySize.LARGE):_}"
+                 "\n\n\t"
+                 f"- EXTRA_LARGE: {int(DictionarySize.EXTRA_LARGE):_}"
+                 "\n\n\t"
+                 f"- CUSTOM: User given size, must be positive (0 not allowed)"
+        )] = DictionarySize.MEDIUM,
         memory_strategy: Annotated[OutOfMemoryStrategy, typer.Option(
             '--memory-strategy', '-ms',
             show_default=True, case_sensitive=False,
-            help="The LZW algorithm is a dictionary-based compression method. In order to not explode your computer, "
-                 "the program limits the amount of memory the dictionary can have.\nFor this reason, something must be "
-                 "done if the dictionary runs out of memory:"
+            help="The action taken if the dictionary's memory isn't enough for the compression: "
                  "\n\n\t"
-                 "- ABORT: Stops the execution of the command, doesn't complete the compression."
+                 "- ABORT: Stops the execution of the command, doesn't complete the compression.\n"
                  "\n\n\t"
-                 "- STOP_STORE: The command will continue compressing the file, but won't add new data to the"
-                 " dictionary. This means the maximum dictionary size won't be exceeded, however the resulting "
-                 "compressed file won't be as small as it could have been if enough memory had been given."
+                 "- STOP_STORE: Stop adding entries. Will complete the compression but reduce its efficiency."
                  "\n\n\t"
-                 "- USE_MINIMUM_REQUIRED: The program will continue compressing the file as usual, but will dynamically "
-                 "increase 'max_dict_size' if it runs out of memory. This approach will exceed the original value of "
-                 "'max_dict_size', but will use the minimum amount of entries possible."
+                 "- USE_MINIMUM_REQUIRED: Increase dictionary size to the minimal amount needed to complete the compression."
         )] = OutOfMemoryStrategy.ABORT,
         benchmark: Annotated[bool, typer.Option(
         '--benchmark/--no-benchmark', '-b/-B', show_default=True,
@@ -56,9 +84,15 @@ def compress(
     [link=https://en.wikipedia.org/wiki/Lempel%E2%80%93Ziv%E2%80%93Welch]Lempel-Ziv-Welch[/link] algorithm, and writes
     the output to the output file.
     """
+    # Get dictionary size out of enum:
+    if max_dict_size is DictionarySize.CUSTOM:
+        dict_size = ask_dict_size()
+    else:
+        dict_size = int(max_dict_size)
+
     # In case the compressor throws a 'TooManyEncodingsException', catch it and print to the user a more elegant
     # message:
-    compressor = LzwCompressor(max_dict_size, memory_strategy)
+    compressor = LzwCompressor(dict_size, memory_strategy)
     try:
         execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark)
     except TooManyEncodingsException as e:
@@ -97,3 +131,19 @@ def decompress(
     except ValueError:
         rich.print("[bold red]Invalid data given - cannot complete decompression[/bold red]")
         typer.Exit(1)
+
+
+def ask_dict_size() -> int:
+    """
+    Asks the user for a dictionary size.
+    :return: The custom dictionary size selected by the user.
+    :raises typer.BadParameter: If the given value is invalid.
+    """
+    # Get value:
+    value = typer.prompt("Enter custom dictionary size", type=int)
+
+    # Check it's positive:
+    if value <= 0:
+        raise typer.BadParameter('Dictionary value must be positive')
+
+    return int(value)
