@@ -59,7 +59,7 @@ class BenchmarkResults:
         # Calculate compression ratio and space saving
         self.compression_ratio = None
         self.space_saving = None
-        if data_size is not None:
+        if data_size is not None and data_size[0] > 0 and data_size[1] > 0:
             self.compression_ratio = data_size[0] / data_size[1]  # Uncompressed / compressed
             self.space_saving = 1 - (data_size[1] / data_size[0])  # 1 - (compressed / uncompressed)
 
