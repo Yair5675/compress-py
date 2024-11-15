@@ -30,6 +30,7 @@ def compress(
                  "in order to complete the algorithm."
         )],
         memory_strategy: Annotated[OutOfMemoryStrategy, typer.Option(
+            '--memory-strategy', '-ms',
             show_default=True, case_sensitive=False,
             help="The LZW algorithm is a dictionary-based compression method. In order to not explode your computer, "
                  "the program limits the amount of memory the dictionary can have.\nFor this reason, something must be "
