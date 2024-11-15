@@ -19,7 +19,11 @@ def compress(
             file_okay=True, dir_okay=False, writable=True, resolve_path=True, show_default=False,
             help=f"The path that the program will write the compressed data to, must end in '{RLE_FILE_EXTENSION}',"
                  " and cannot be the input file."
-        )]
+        )],
+        benchmark: Annotated[bool, typer.Option(
+            '--benchmark', '-b',
+            help="Whether the command should print information about the algorithm's performance and memory usage")
+        ] = False
 ) -> None:
     """
     Compresses the file according to the [link=https://en.wikipedia.org/wiki/Run-length_encoding]Run-Length encoding[/link] algorithm.
@@ -27,7 +31,7 @@ def compress(
     """
     # Initialize and execute the compressor:
     compressor = RleCompressor()
-    execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=True)
+    execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark)
 
 
 def decompress(input_path: Annotated[Path, typer.Argument(
@@ -39,7 +43,11 @@ def decompress(input_path: Annotated[Path, typer.Argument(
             file_okay=True, dir_okay=False, writable=True, resolve_path=True, show_default=False,
             help=f"The path that the program will write the decompressed data to. Its file extension can be anything, "
                  "but it must be different than the input file."
-        )]
+        )],
+        benchmark: Annotated[bool, typer.Option(
+             '--benchmark', '-b',
+             help="Whether the command should print information about the algorithm's performance and memory usage")
+        ] = False
 ) -> None:
     """
     Decompresses a file that was compressed using the program's [link=https://en.wikipedia.org/wiki/Run-length_encoding]RLE[/link] implementation.
@@ -48,7 +56,7 @@ def decompress(input_path: Annotated[Path, typer.Argument(
     # Initialize and execute the compressor:
     compressor = RleCompressor()
     try:
-        execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=True)
+        execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark)
     # Be careful of ValueError in case invalid data was given:
     except ValueError:
         rich.print("[bold red]Invalid RLE compressed data[/bold red]")

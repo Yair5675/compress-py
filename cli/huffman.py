@@ -19,14 +19,18 @@ def compress(
             file_okay=True, dir_okay=False, writable=True, resolve_path=True, show_default=False,
             help=f"The path that the program will write the compressed data to, must end in '{HUFFMAN_FILE_EXTENSION}',"
                  " and cannot be the input file."
-        )]
+        )],
+        benchmark: Annotated[bool, typer.Option(
+            '--benchmark', '-b',
+            help="Whether the command should print information about the algorithm's performance and memory usage")
+        ] = False
 ) -> None:
     """
     Compresses a file using [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman coding[/link].
     The compressed data will be saved in the provided output path, and not interfere with the input file's data.
     """
     cli.shared_behavior.execute_compressor(
-        HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=True
+        HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark
     )
 
 
@@ -39,12 +43,16 @@ def decompress(input_path: Annotated[Path, typer.Argument(
             file_okay=True, dir_okay=False, writable=True, resolve_path=True, show_default=False,
             help=f"The path that the program will write the decompressed data to. Its file extension can be anything, "
                  "but it must be different than the input file."
-        )]
+        )],
+        benchmark: Annotated[bool, typer.Option(
+            '--benchmark', '-b',
+            help="Whether the command should print information about the algorithm's performance and memory usage")
+        ]
 ) -> None:
     """
     Decompresses a file that was compressed using the program's [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman Coding[/link] implementation.
     The command will only work on this program's implementation of Huffman coding, and will exit unsuccessfully if a file with invalid format will be given to it.
     """
     cli.shared_behavior.execute_compressor(
-        HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=False
+        HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark
     )

@@ -44,7 +44,11 @@ def compress(
                  "- USE_MINIMUM_REQUIRED: The program will continue compressing the file as usual, but will dynamically "
                  "increase 'max_dict_size' if it runs out of memory. This approach will exceed the original value of "
                  "'max_dict_size', but will use the minimum amount of entries possible."
-        )] = OutOfMemoryStrategy.ABORT
+        )] = OutOfMemoryStrategy.ABORT,
+        benchmark: Annotated[bool, typer.Option(
+                    '--benchmark', '-b',
+                    help="Whether the command should print information about the algorithm's performance and memory usage")
+                ] = False
 ) -> None:
     """
     Compresses the input file according to the
@@ -55,7 +59,7 @@ def compress(
     # message:
     compressor = LzwCompressor(max_dict_size, memory_strategy)
     try:
-        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=True)
+        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark)
     except TooManyEncodingsException as e:
         rich.print("[bold red]LZW dictionary ran out of memory[/bold red]")
         raise typer.Abort(e)
@@ -73,6 +77,10 @@ def decompress(
             help=f"The path that the program will write the decompressed data to. It can be any type of file, but cannot "
                  "be the input file."
         )],
+        benchmark: Annotated[bool, typer.Option(
+                    '--benchmark', '-b',
+                    help="Whether the command should print information about the algorithm's performance and memory usage")
+                ] = False
 ) -> None:
     """
     Decompresses the input file according to the
@@ -84,7 +92,7 @@ def decompress(
 
     # Keep an eye out for ValueError, it is raised for an invalid format:
     try:
-        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=False)
+        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark)
     except ValueError:
         rich.print("[bold red]Invalid data given - cannot complete decompression[/bold red]")
         typer.Exit(1)
