@@ -10,7 +10,7 @@ class TooManyEncodingsException(Exception):
         super().__init__(message)
 
 
-class OutOfMemoryStrategy(Enum):
+class OutOfMemoryStrategy(str, Enum):
     """
     During the LZW algorithm, the dictionary's size may not be sufficient. In this case, the program needs to know how
     to proceed.
