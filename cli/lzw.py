@@ -46,9 +46,9 @@ def compress(
                  "'max_dict_size', but will use the minimum amount of entries possible."
         )] = OutOfMemoryStrategy.ABORT,
         benchmark: Annotated[bool, typer.Option(
-                    '--benchmark', '-b',
-                    help="Whether the command should print information about the algorithm's performance and memory usage")
-                ] = False
+        '--benchmark/--no-benchmark', '-b/-B', show_default=True,
+            help="Whether the command should print information about the algorithm's performance and memory usage")
+        ] = False
 ) -> None:
     """
     Compresses the input file according to the

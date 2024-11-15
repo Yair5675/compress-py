@@ -21,7 +21,7 @@ def compress(
                  " and cannot be the input file."
         )],
         benchmark: Annotated[bool, typer.Option(
-            '--benchmark', '-b',
+        '--benchmark/--no-benchmark', '-b/-B', show_default=True,
             help="Whether the command should print information about the algorithm's performance and memory usage")
         ] = False
 ) -> None:
@@ -45,9 +45,9 @@ def decompress(input_path: Annotated[Path, typer.Argument(
                  "but it must be different than the input file."
         )],
         benchmark: Annotated[bool, typer.Option(
-            '--benchmark', '-b',
+        '--benchmark/--no-benchmark', '-b/-B', show_default=True,
             help="Whether the command should print information about the algorithm's performance and memory usage")
-        ]
+        ] = False
 ) -> None:
     """
     Decompresses a file that was compressed using the program's [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman Coding[/link] implementation.
