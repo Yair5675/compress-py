@@ -58,8 +58,14 @@ class IntervalState(Enum):
 class ArithmeticCompressor(Compressor):
 
     __slots__ = (
+        # Boundaries of the current interval during compression/decompression:
+        'low', 'high',
+
+        # Number of bits that were removed to prevent a near-convergence situation:
+        'near_conv_count',
+
         # The probability intervals that define the arithmetic compression:
-        'prob_intervals',
+        'prob_intervals'
     )
 
     # An EOF value, guaranteed not to be a byte value:
@@ -101,28 +107,74 @@ class ArithmeticCompressor(Compressor):
         else:
             raise ValueError(f'Value is neither a byte value nor EOF (but instead {value})')
 
-    @staticmethod
-    def add_bit_and_pending(bit: int, pending: int, output: BitBuffer) -> None:
+    def add_bit_and_pending(self, bit: int, output: BitBuffer) -> None:
         """
         Inserts the current bit to the output, along with any pending bits from previous occurrences of
         near-convergence.
         :param bit: A bit that will be added to the output.
-        :param pending: The number of bits that were removed from the interval boundaries to prevent near-convergence
-                        and a resulting shortage of bits in the boundaries.
         :param output: The output buffer that the bits will be written to.
         """
         # Add the bit:
         output.insert_bits(bit, 1)
 
         # If there are any pending, add the inverted bit `pending` times:
-        if pending > 0:
+        if self.near_conv_count > 0:
             inverted_bit = 0 if bit == 1 else 0xFFFFFFFF
+
             # BitBuffer only inserts the first 32 bits, so just in case future versions can have over 32
             # near-convergence bits, add them in groups of 32:
-            for _ in range(pending // 32):
+            for _ in range(self.near_conv_count // 32):
                 output.insert_bits(inverted_bit, 32)
-            if (remaining_bits := pending % 32) > 0:
+            if (remaining_bits := self.near_conv_count % 32) > 0:
                 output.insert_bits(inverted_bit, remaining_bits)
+
+    def calc_new_boundary(self, byte_val: int) -> None:
+        """
+        Internally updates `low` and `high` based on the current byte value and the internal probability intervals.
+        :param byte_val: The current byte value, will determine the new interval [low, high).
+        """
+        # Get the probability interval corresponding to `byte_val`:
+        prob_interval: ProbabilityInterval = self.get_prob_interval(byte_val)
+
+        # Calculate interval width:
+        width: int = self.high - self.low + 1
+
+        # Update low and high:
+        self.high = self.low + width * prob_interval.end_cum // prob_interval.tot_cum
+        self.low = self.low + width * prob_interval.start_cum // prob_interval.tot_cum
+
+    def process_interval_state(self, output: BitBuffer) -> None:
+        """
+        The method calculates the current state of the interval [low, high), adds bits to `output` if needed, and
+        internally calculates new values for 'low' and 'high'.
+        The function handles those two cases:
+            1) Matching MSBs - The function will output the matching MSB to output (along with pending bits from
+                               near-convergence situations), and will remove them from low and high.
+            2) Near-convergence - The function will increment the counter of pending near-convergence bits, and will
+                                  remove the second MSBs from `low` and `high`, freeing their bits.
+        If the interval state is NON_CONVERGING, nothing will be done.
+        :param output: The output buffer that, if needed, bits will be inserted to.
+        """
+        # Check state:
+        match state := IntervalState.get_state(self.low, self.high):
+            case IntervalState.CONVERGING_0 | IntervalState.CONVERGING_1:
+                # Add matching bit:
+                matching_bit = 1 if state is IntervalState.CONVERGING_1 else 0
+                self.add_bit_and_pending(matching_bit, output)
+
+                # Remove it:
+                self.low = (self.low << 1) & 0xFF
+                self.high = ((self.high << 1) | 1) & 0xFF
+
+                # Reset near-convergence bits:
+                self.near_conv_count = 0
+
+            # Handle near-convergence situations:
+            case IntervalState.NEAR_CONVERGENCE:
+                # Increment pending, remove the second MSB and shift in new LSBs (0 for low, 1 for high):
+                self.near_conv_count += 1
+                self.low = (self.low & 0x3F) << 1
+                self.high = ((self.high & 0x3F) << 1) | 0x81
 
     def encode(self, input_data: bytes) -> bytes:
         """
@@ -130,47 +182,20 @@ class ArithmeticCompressor(Compressor):
         :param input_data: The bytes that will be encoded.
         :return: A compressed version of 'input_data'.
         """
-        # All stored values are 8 bits, for simplicity (it may be changed later):
-        MAX_VAL_MASK = 0xFF
-        low, high = 0, 0xFF
-
-        # Number of bits not yet added to output due to near-convergence:
-        pending: int = 0
+        # Initialize interval boundaries and near-convergence bits:
+        self.low, self.high, self.near_conv_count = 0, 0xFF, 0
 
         # Output buffer:
         output_buffer: BitBuffer = BitBuffer()
 
         # Loop over input data:
         for byte_val in input_data:
-            # Calculate current interval's width:
-            width: int = high - low + 1
-
             # Calculate new interval based on the current byte value:
-            prob_interval: ProbabilityInterval = self.get_prob_interval(byte_val)
-            high = low + width * prob_interval.end_cum // prob_interval.tot_cum
-            low = low + width * prob_interval.start_cum // prob_interval.tot_cum
+            self.calc_new_boundary(byte_val)
 
-            while (interval_state := IntervalState.get_state(low, high)) is not IntervalState.NON_CONVERGING:
-                # Handle similar MSBs:
-                match interval_state:
-                    case IntervalState.CONVERGING_0 | IntervalState.CONVERGING_1:
-                        # Add matching bit:
-                        matching_bit = 1 if interval_state is IntervalState.CONVERGING_1 else 0
-                        ArithmeticCompressor.add_bit_and_pending(matching_bit, pending, output_buffer)
-
-                        # Remove it:
-                        low = (low << 1) & MAX_VAL_MASK
-                        high = ((high << 1) | 1) & MAX_VAL_MASK
-
-                        # Reset near-convergence bits:
-                        pending = 0
-
-                    # Handle near-convergence situations:
-                    case IntervalState.NEAR_CONVERGENCE:
-                        # Increment pending, remove the second MSB and shift in new LSBs (0 for low, 1 for high):
-                        pending += 1
-                        low = (low & 0x3F) << 1
-                        high = ((high & 0x3F) << 1) | 0x81
+            # Process interval state:
+            while IntervalState.get_state(self.low, self.high) is not IntervalState.NON_CONVERGING:
+                self.process_interval_state(output_buffer)
 
             # TODO: Add an EOF
 
