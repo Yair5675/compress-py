@@ -1,5 +1,6 @@
 from collections import namedtuple
 from compressors import Compressor
+from util.bitbuffer import BitBuffer
 
 # A type representing a probability interval inside the arithmetic compressor. Since we are working with integer
 # math only, it will be represented as a cumulative frequency, and total cumulative frequency. True probability
@@ -66,7 +67,29 @@ class ArithmeticCompressor(Compressor):
         :param input_data: The bytes that will be encoded.
         :return: A compressed version of 'input_data'.
         """
-        pass
+        # All stored values are 8 bits, for simplicity (it may be changed later)
+        low, high = 0, 0xFF
+
+        # Output buffer:
+        output_buffer: BitBuffer = BitBuffer()
+
+        # Loop over input data:
+        for byte_val in input_data:
+            # Calculate current interval's width:
+            width: int = high - low + 1
+
+            # Calculate new interval based on the current byte value:
+            prob_interval: ProbabilityInterval = self.get_prob_interval(byte_val)
+            high = low + width * prob_interval.end_cum // prob_interval.tot_cum
+            low = low + width * prob_interval.start_cum // prob_interval.tot_cum
+
+            # TODO: Handle similar MSBs
+            # TODO: Handle near-convergence situations
+            # TODO: Add an EOF
+
+        # The padding that BitBuffer appends to the data is ok. Since it is only zeroes, it does not change the number
+        # that the compressor had produced:
+        return bytes(output_buffer)
 
     def decode(self, compressed_data: bytes) -> bytes:
         pass
