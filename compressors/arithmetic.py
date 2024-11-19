@@ -163,7 +163,13 @@ class ArithmeticCompressor(Compressor):
                 # Reset near-convergence bits:
                 pending = 0
 
-            # TODO: Handle near-convergence situations
+            # Handle near-convergence situations:
+            while IntervalState.get_state(low, high) is IntervalState.NEAR_CONVERGENCE:
+                # Increment pending, remove the second MSB and shift in new LSBs (0 for low, 1 for high):
+                pending += 1
+                low = (low & 0x3F) << 1
+                high = ((high & 0x3F) << 1) | 0x81
+
             # TODO: Add an EOF
 
         # The padding that BitBuffer appends to the data is ok. Since it is only zeroes, it does not change the number
