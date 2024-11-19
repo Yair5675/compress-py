@@ -183,6 +183,10 @@ class ArithmeticCompressor(Compressor):
         :param input_data: The bytes that will be encoded.
         :return: A compressed version of 'input_data'.
         """
+        # Empty edge-case:
+        if len(input_data) == 0:
+            return bytes()
+
         # Initialize interval boundaries and near-convergence bits:
         self.low, self.high, self.near_conv_count = 0, 0xFF, 0
 
