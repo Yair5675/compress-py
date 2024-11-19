@@ -33,6 +33,13 @@ class IntervalState(Enum):
     # Not converging (none of the above):
     NON_CONVERGING = auto()
 
+    def is_converging(self) -> bool:
+        """
+        Checks whether the current interval state is CONVERGING_0 or CONVERGING_1.
+        :return: True if self is a converging variant of IntervalState, false otherwise.
+        """
+        return self is IntervalState.CONVERGING_0 or self is IntervalState.CONVERGING_1
+
     @staticmethod
     def get_state(low: int, high: int) -> 'IntervalState':
         # Check convergence:
@@ -100,7 +107,8 @@ class ArithmeticCompressor(Compressor):
         :param input_data: The bytes that will be encoded.
         :return: A compressed version of 'input_data'.
         """
-        # All stored values are 8 bits, for simplicity (it may be changed later)
+        # All stored values are 8 bits, for simplicity (it may be changed later):
+        MAX_VAL_MASK = 0xFF
         low, high = 0, 0xFF
 
         # Output buffer:
@@ -116,7 +124,13 @@ class ArithmeticCompressor(Compressor):
             high = low + width * prob_interval.end_cum // prob_interval.tot_cum
             low = low + width * prob_interval.start_cum // prob_interval.tot_cum
 
-            # TODO: Handle similar MSBs
+            # Handle similar MSBs:
+            while (interval_state := IntervalState.get_state(low, high)).is_converging():
+                matching_bit = 1 if interval_state is IntervalState.CONVERGING_1 else 0
+                output_buffer.insert_bits(matching_bit, 1)
+                low = (low << 1) & MAX_VAL_MASK
+                high = ((high << 1) | 1) & MAX_VAL_MASK
+
             # TODO: Handle near-convergence situations
             # TODO: Add an EOF
 
