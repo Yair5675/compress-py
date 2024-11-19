@@ -1,3 +1,4 @@
+from enum import Enum, auto
 from collections import namedtuple
 from compressors import Compressor
 from util.bitbuffer import BitBuffer
@@ -13,6 +14,38 @@ ProbabilityInterval = namedtuple('ProbabilityInterval', (
     # Cumulative frequency of all intervals:
     'tot_cum'
 ))
+
+
+class IntervalState(Enum):
+    """
+    During compression/decompression, the interval boundaries 'low' and 'high' determine the output. Their state
+    determines the outputted bit. This enum contains every state those boundaries can be in:
+    """
+    # Both low and high's MSB is 0:
+    CONVERGING_0 = auto()
+
+    # Both low and high's MSB is 1:
+    CONVERGING_1 = auto()
+
+    # Near-convergence (low >= one fourth, and high < three fourths):
+    NEAR_CONVERGENCE = auto()
+
+    # Not converging (none of the above):
+    NON_CONVERGING = auto()
+
+    @staticmethod
+    def get_state(low: int, high: int) -> 'IntervalState':
+        # Check convergence:
+        if low >= 0x80:
+            return IntervalState.CONVERGING_1
+        elif high < 0x80:
+            return IntervalState.CONVERGING_0
+        # Check near-convergence:
+        elif low >= 0x40 and high < 0xC0:
+            return IntervalState.NEAR_CONVERGENCE
+        # Default - non-converging:
+        else:
+            return IntervalState.NON_CONVERGING
 
 
 class ArithmeticCompressor(Compressor):
