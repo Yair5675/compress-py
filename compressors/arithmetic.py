@@ -141,8 +141,8 @@ class ArithmeticCompressor(Compressor):
         width: int = self.high - self.low + 1
 
         # Update low and high:
-        self.high = self.low + width * prob_interval.end_cum // prob_interval.tot_cum
-        self.low = self.low + width * prob_interval.start_cum // prob_interval.tot_cum
+        self.high = (self.low - 1 + width * prob_interval.end_cum // prob_interval.tot_cum) & 0xFF
+        self.low = (self.low + width * prob_interval.start_cum // prob_interval.tot_cum) & 0xFF
 
     def process_interval_state(self, output: BitBuffer) -> None:
         """
