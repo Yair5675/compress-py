@@ -1,3 +1,4 @@
+import itertools
 from enum import Enum, auto
 from collections import namedtuple
 from compressors import Compressor
@@ -188,8 +189,8 @@ class ArithmeticCompressor(Compressor):
         # Output buffer:
         output_buffer: BitBuffer = BitBuffer()
 
-        # Loop over input data:
-        for byte_val in input_data:
+        # Loop over input data, and add an EOF at the end:
+        for byte_val in itertools.chain(input_data, (ArithmeticCompressor.EOF,)):
             # Calculate new interval based on the current byte value:
             self.calc_new_boundary(byte_val)
 
@@ -197,7 +198,15 @@ class ArithmeticCompressor(Compressor):
             while IntervalState.get_state(self.low, self.high) is not IntervalState.NON_CONVERGING:
                 self.process_interval_state(output_buffer)
 
-            # TODO: Add an EOF
+        # When the loop exits, the possible boundaries are:
+        # - [01yyy, 11xxx)
+        # - [00yyy, 11xxx)
+        # - [00yyy, 10xxx)
+        # So we must insert '01' if low is '00', and '10' if low is '01'. Along with those, any pending near-convergence
+        # bits must be inserted as well. A simple way of doing it is just adding 1 to the near-convergence counter and
+        # insert the value of low's second MSB:
+        self.near_conv_count += 1
+        self.add_bit_and_pending(self.low >> 6, output_buffer)
 
         # The padding that BitBuffer appends to the data is ok. Since it is only zeroes, it does not change the number
         # that the compressor had produced:
