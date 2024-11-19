@@ -101,6 +101,29 @@ class ArithmeticCompressor(Compressor):
         else:
             raise ValueError(f'Value is neither a byte value nor EOF (but instead {value})')
 
+    @staticmethod
+    def add_bit_and_pending(bit: int, pending: int, output: BitBuffer) -> None:
+        """
+        Inserts the current bit to the output, along with any pending bits from previous occurrences of
+        near-convergence.
+        :param bit: A bit that will be added to the output.
+        :param pending: The number of bits that were removed from the interval boundaries to prevent near-convergence
+                        and a resulting shortage of bits in the boundaries.
+        :param output: The output buffer that the bits will be written to.
+        """
+        # Add the bit:
+        output.insert_bits(bit, 1)
+
+        # If there are any pending, add the inverted bit `pending` times:
+        if pending > 0:
+            inverted_bit = 0 if bit == 1 else 0xFFFFFFFF
+            # BitBuffer only inserts the first 32 bits, so just in case future versions can have over 32
+            # near-convergence bits, add them in groups of 32:
+            for _ in range(pending // 32):
+                output.insert_bits(inverted_bit, 32)
+            if (remaining_bits := pending % 32) > 0:
+                output.insert_bits(inverted_bit, remaining_bits)
+
     def encode(self, input_data: bytes) -> bytes:
         """
         Compresses the input data based on arithmetic coding.
@@ -110,6 +133,9 @@ class ArithmeticCompressor(Compressor):
         # All stored values are 8 bits, for simplicity (it may be changed later):
         MAX_VAL_MASK = 0xFF
         low, high = 0, 0xFF
+
+        # Number of bits not yet added to output due to near-convergence:
+        pending: int = 0
 
         # Output buffer:
         output_buffer: BitBuffer = BitBuffer()
@@ -126,10 +152,16 @@ class ArithmeticCompressor(Compressor):
 
             # Handle similar MSBs:
             while (interval_state := IntervalState.get_state(low, high)).is_converging():
+                # Add matching bit:
                 matching_bit = 1 if interval_state is IntervalState.CONVERGING_1 else 0
-                output_buffer.insert_bits(matching_bit, 1)
+                ArithmeticCompressor.add_bit_and_pending(matching_bit, pending, output_buffer)
+
+                # Remove it:
                 low = (low << 1) & MAX_VAL_MASK
                 high = ((high << 1) | 1) & MAX_VAL_MASK
+
+                # Reset near-convergence bits:
+                pending = 0
 
             # TODO: Handle near-convergence situations
             # TODO: Add an EOF
