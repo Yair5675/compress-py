@@ -150,25 +150,27 @@ class ArithmeticCompressor(Compressor):
             high = low + width * prob_interval.end_cum // prob_interval.tot_cum
             low = low + width * prob_interval.start_cum // prob_interval.tot_cum
 
-            # Handle similar MSBs:
-            while (interval_state := IntervalState.get_state(low, high)).is_converging():
-                # Add matching bit:
-                matching_bit = 1 if interval_state is IntervalState.CONVERGING_1 else 0
-                ArithmeticCompressor.add_bit_and_pending(matching_bit, pending, output_buffer)
+            while (interval_state := IntervalState.get_state(low, high)) is not IntervalState.NON_CONVERGING:
+                # Handle similar MSBs:
+                match interval_state:
+                    case IntervalState.CONVERGING_0 | IntervalState.CONVERGING_1:
+                        # Add matching bit:
+                        matching_bit = 1 if interval_state is IntervalState.CONVERGING_1 else 0
+                        ArithmeticCompressor.add_bit_and_pending(matching_bit, pending, output_buffer)
 
-                # Remove it:
-                low = (low << 1) & MAX_VAL_MASK
-                high = ((high << 1) | 1) & MAX_VAL_MASK
+                        # Remove it:
+                        low = (low << 1) & MAX_VAL_MASK
+                        high = ((high << 1) | 1) & MAX_VAL_MASK
 
-                # Reset near-convergence bits:
-                pending = 0
+                        # Reset near-convergence bits:
+                        pending = 0
 
-            # Handle near-convergence situations:
-            while IntervalState.get_state(low, high) is IntervalState.NEAR_CONVERGENCE:
-                # Increment pending, remove the second MSB and shift in new LSBs (0 for low, 1 for high):
-                pending += 1
-                low = (low & 0x3F) << 1
-                high = ((high & 0x3F) << 1) | 0x81
+                    # Handle near-convergence situations:
+                    case IntervalState.NEAR_CONVERGENCE:
+                        # Increment pending, remove the second MSB and shift in new LSBs (0 for low, 1 for high):
+                        pending += 1
+                        low = (low & 0x3F) << 1
+                        high = ((high & 0x3F) << 1) | 0x81
 
             # TODO: Add an EOF
 
