@@ -21,6 +21,9 @@ class ArithmeticCompressor(Compressor):
         'prob_intervals',
     )
 
+    # An EOF value, guaranteed not to be a byte value:
+    EOF = 0xFFF
+
     def __init__(self) -> 'ArithmeticCompressor':
         self.__init_equal_probs()
 
@@ -40,6 +43,22 @@ class ArithmeticCompressor(Compressor):
         self.prob_intervals: tuple[ProbabilityInterval] = tuple(
             ProbabilityInterval(i, i + 1, tot_cum) for i in range(257)
         )
+
+    def get_prob_interval(self, value: int) -> ProbabilityInterval:
+        """
+        Calculates the probability interval corresponding to the given value.
+        If a value is a possible byte value (i.e: 0 <= value <= 0xFF), its interval is returned. If value is
+        ArithmeticCompressor.EOF, its interval is returned. If value equals any other value, a ValueError is raised.
+        :param value: The byte value or EOF value whose probability interval is needed.
+        :return: The probability interval of the provided value.
+        :raises ValueError: If value is neither a byte value (0 <= value <= 0xFF) nor ArithmeticCompressor.EOF.
+        """
+        if 0 <= value <= 0xFF:
+            return self.prob_intervals[value]
+        elif value == ArithmeticCompressor.EOF:
+            return self.prob_intervals[-1]
+        else:
+            raise ValueError(f'Value is neither a byte value nor EOF (but instead {value})')
 
     def encode(self, input_data: bytes) -> bytes:
         """
