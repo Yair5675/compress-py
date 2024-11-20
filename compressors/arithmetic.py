@@ -25,6 +25,9 @@ class BitsSystem:
     program needs to know how many bits should be used for calculations. This class saves those values and allows
     them to be easily configured.
     """
+    # Number of bits used in the system:
+    BITS_USED: int
+
     # Maximum value that can be saved in the current bit system:
     MAX_CODE: int
 
@@ -40,6 +43,9 @@ class BitsSystem:
         Generates the bit system values necessary, according to the number of bits the maximum value should hold.
         :param max_bits_used: The maximum number of bits a value can hold in the created bit system.
         """
+        # Save the max_bits_used:
+        self.BITS_USED = max_bits_used
+
         # Get the max code value in the system (all ones, `max_bits_used` times):
         self.MAX_CODE = 0
         for _ in range(max_bits_used):
@@ -80,14 +86,14 @@ class IntervalState(Enum):
         return self is IntervalState.CONVERGING_0 or self is IntervalState.CONVERGING_1
 
     @staticmethod
-    def get_state(low: int, high: int) -> 'IntervalState':
+    def get_state(low: int, high: int, bits_system: BitsSystem) -> 'IntervalState':
         # Check convergence:
-        if low >= 0x80:
+        if low >= bits_system.HALF:
             return IntervalState.CONVERGING_1
-        elif high < 0x80:
+        elif high < bits_system.HALF:
             return IntervalState.CONVERGING_0
         # Check near-convergence:
-        elif low >= 0x40 and high < 0xC0:
+        elif low >= bits_system.ONE_FOURTH and high < bits_system.THREE_FOURTHS:
             return IntervalState.NEAR_CONVERGENCE
         # Default - non-converging:
         else:
@@ -104,13 +110,20 @@ class ArithmeticCompressor(Compressor):
         'near_conv_count',
 
         # The probability intervals that define the arithmetic compression:
-        'prob_intervals'
+        'prob_intervals',
+
+        # The bits system the calculations will be made in:
+        'bits_system'
     )
 
     # An EOF value, guaranteed not to be a byte value:
     EOF = 0xFFF
 
     def __init__(self) -> 'ArithmeticCompressor':
+        # For now, just initialize a 32-bit system:
+        self.bits_system = BitsSystem(32)
+
+        # Initialize equal probability:
         self.__init_equal_probs()
 
     def __init_equal_probs(self) -> None:
@@ -195,15 +208,15 @@ class ArithmeticCompressor(Compressor):
         :param output: The output buffer that, if needed, bits will be inserted to.
         """
         # Check state:
-        match state := IntervalState.get_state(self.low, self.high):
+        match state := IntervalState.get_state(self.low, self.high, self.bits_system):
             case IntervalState.CONVERGING_0 | IntervalState.CONVERGING_1:
                 # Add matching bit:
                 matching_bit = 1 if state is IntervalState.CONVERGING_1 else 0
                 self.add_bit_and_pending(matching_bit, output)
 
                 # Remove it:
-                self.low = (self.low << 1) & 0xFF
-                self.high = ((self.high << 1) | 1) & 0xFF
+                self.low = (self.low << 1) & self.bits_system.MAX_CODE
+                self.high = ((self.high << 1) | 1) & self.bits_system.MAX_CODE
 
                 # Reset near-convergence bits:
                 self.near_conv_count = 0
@@ -212,8 +225,9 @@ class ArithmeticCompressor(Compressor):
             case IntervalState.NEAR_CONVERGENCE:
                 # Increment pending, remove the second MSB and shift in new LSBs (0 for low, 1 for high):
                 self.near_conv_count += 1
-                self.low = (self.low & 0x3F) << 1
-                self.high = ((self.high & 0x3F) << 1) | 0x81
+                mask = self.bits_system.MAX_CODE >> 2  # Mask deletes first and second MSBs
+                self.low = (self.low & mask) << 1
+                self.high = ((self.high & mask) << 1) | 0x81
 
     def encode(self, input_data: bytes) -> bytes:
         """
@@ -226,7 +240,7 @@ class ArithmeticCompressor(Compressor):
             return bytes()
 
         # Initialize interval boundaries and near-convergence bits:
-        self.low, self.high, self.near_conv_count = 0, 0xFF, 0
+        self.low, self.high, self.near_conv_count = 0, self.bits_system.MAX_CODE, 0
 
         # Output buffer:
         output_buffer: BitBuffer = BitBuffer()
@@ -237,7 +251,7 @@ class ArithmeticCompressor(Compressor):
             self.calc_new_boundary(byte_val)
 
             # Process interval state:
-            while IntervalState.get_state(self.low, self.high) is not IntervalState.NON_CONVERGING:
+            while IntervalState.get_state(self.low, self.high, self.bits_system) is not IntervalState.NON_CONVERGING:
                 self.process_interval_state(output_buffer)
 
         # When the loop exits, the possible boundaries are:
@@ -248,7 +262,7 @@ class ArithmeticCompressor(Compressor):
         # bits must be inserted as well. A simple way of doing it is just adding 1 to the near-convergence counter and
         # insert the value of low's second MSB:
         self.near_conv_count += 1
-        self.add_bit_and_pending(self.low >> 6, output_buffer)
+        self.add_bit_and_pending(self.low >> (self.bits_system.BITS_USED - 2), output_buffer)
 
         # The padding that BitBuffer appends to the data is ok. Since it is only zeroes, it does not change the number
         # that the compressor had produced:
