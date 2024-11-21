@@ -1,21 +1,8 @@
 import itertools
 from enum import Enum, auto
 from dataclasses import dataclass
-from collections import namedtuple
 from compressors import Compressor
 from util.bitbuffer import BitBuffer
-
-# A type representing a probability interval inside the arithmetic compressor. Since we are working with integer
-# math only, it will be represented as a cumulative frequency, and total cumulative frequency. True probability
-# can be calculated as `prob_0 = start_cum // tot_cum, prob_1 = end_cum // tot_cum`:
-ProbabilityInterval = namedtuple('ProbabilityInterval', (
-    # Cumulative frequency up until this interval:
-    'start_cum',
-    # Cumulative frequency up until this interval, including it:
-    'end_cum',
-    # Cumulative frequency of all intervals:
-    'tot_cum'
-))
 
 
 @dataclass(init=False)
@@ -59,6 +46,15 @@ class BitsSystem:
 
         # Define three fourths as '11' bits, followed by all zeroes:
         self.THREE_FOURTHS = self.HALF | self.ONE_FOURTH
+
+
+class InsufficientValueRange(Exception):
+    """
+    Represents a situation were a chosen bit system is too small to represent all needed values uniquely
+    """
+    def __init__(self, values_to_represent: int):
+        msg: str = f"Chosen bit system isn't sufficient to uniquely represent {values_to_represent} values"
+        super().__init__(msg)
 
 
 class IntervalState(Enum):
@@ -109,8 +105,11 @@ class ArithmeticCompressor(Compressor):
         # Number of bits that were removed to prevent a near-convergence situation:
         'near_conv_count',
 
-        # The probability intervals that define the arithmetic compression:
-        'prob_intervals',
+        # A list of the cumulative frequencies of all byte values plus the EOF value in the input data.
+        # The range defined for a byte value 'i' is the element at index i, up until the element at index i + 1.
+        # The EOF value is an exception, because its range is the second to last element, up until the last element.
+        # The last element represents the total frequency:
+        'cum_freqs',
 
         # The bits system the calculations will be made in:
         'bits_system'
@@ -128,34 +127,29 @@ class ArithmeticCompressor(Compressor):
 
     def __init_equal_probs(self) -> None:
         """
-        Assigns a list of probability intervals to attribute 'prob_intervals'.
-        The assigned intervals are equal in length, which means the compressor assumes each byte value is equally
-        likely. Granted, adaptive probability intervals may produce better compression efficiency.
-        The intervals list will be of length 257:
-            - First 256 elements represent the intervals corresponding to all byte values.
-            - Last element is an additional 'EOF' value.
+        Initializes the cumulative frequencies list to represent equal probabilities for each byte value (and the EOF
+        value) in an input.
         """
-        # Total cumulative frequency is 257:
-        tot_cum = 257
+        # Check that the bits system is enough to represent 257 values:
+        if self.bits_system.MAX_CODE < 257:
+            raise InsufficientValueRange(257)
 
-        # Build probability intervals with equal probabilities:
-        self.prob_intervals: tuple[ProbabilityInterval] = tuple(
-            ProbabilityInterval(i, i + 1, tot_cum) for i in range(257)
-        )
+        # Assign equal frequencies to all values:
+        self.cum_freqs: tuple[int] = tuple(i for i in range(258))
 
-    def get_prob_interval(self, value: int) -> ProbabilityInterval:
+    def get_cum_interval(self, value: int) -> tuple[int, int]:
         """
-        Calculates the probability interval corresponding to the given value.
+        Calculates the cumulative frequency interval corresponding to the given value.
         If a value is a possible byte value (i.e: 0 <= value <= 0xFF), its interval is returned. If value is
         ArithmeticCompressor.EOF, its interval is returned. If value equals any other value, a ValueError is raised.
         :param value: The byte value or EOF value whose probability interval is needed.
-        :return: The probability interval of the provided value.
+        :return: The interval of the current value, represented as a tuple of [start_cum, end_cum).
         :raises ValueError: If value is neither a byte value (0 <= value <= 0xFF) nor ArithmeticCompressor.EOF.
         """
         if 0 <= value <= 0xFF:
-            return self.prob_intervals[value]
+            return self.cum_freqs[value], self.cum_freqs[value + 1]
         elif value == ArithmeticCompressor.EOF:
-            return self.prob_intervals[-1]
+            return self.cum_freqs[-2], self.cum_freqs[-1]
         else:
             raise ValueError(f'Value is neither a byte value nor EOF (but instead {value})')
 
@@ -185,15 +179,16 @@ class ArithmeticCompressor(Compressor):
         Internally updates `low` and `high` based on the current byte value and the internal probability intervals.
         :param byte_val: The current byte value, will determine the new interval [low, high).
         """
-        # Get the probability interval corresponding to `byte_val`:
-        prob_interval: ProbabilityInterval = self.get_prob_interval(byte_val)
+        # Get the cumulative frequency interval corresponding to `byte_val`:
+        cum_interval: tuple[int, int] = self.get_cum_interval(byte_val)
 
         # Calculate interval width:
         width: int = self.high - self.low + 1
 
         # Update low and high:
-        self.high = (self.low - 1 + width * prob_interval.end_cum // prob_interval.tot_cum) & 0xFF
-        self.low = (self.low + width * prob_interval.start_cum // prob_interval.tot_cum) & 0xFF
+        total_freq: int = self.cum_freqs[-1]
+        self.high = (self.low - 1 + width * cum_interval[1] // total_freq) & 0xFF
+        self.low = (self.low + width * cum_interval[0] // total_freq) & 0xFF
 
     def process_interval_state(self, output: BitBuffer) -> None:
         """
