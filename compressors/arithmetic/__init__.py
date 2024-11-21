@@ -1,4 +1,5 @@
 import itertools
+from typing import Optional
 from compressors import Compressor
 from util.bitbuffer import BitBuffer
 from compressors.arithmetic.interval_state import IntervalState
@@ -171,6 +172,35 @@ class ArithmeticCompressor(Compressor):
         # The padding that BitBuffer appends to the data is ok. Since it is only zeroes, it does not change the number
         # that the compressor had produced:
         return bytes(output_buffer)
+
+    def get_byte_value(self, cum_freq: int) -> int:
+        """
+        Given a cumulative frequency, the method searches for the cumulative range that the value lies in, and returns
+        the byte value (or EOF value) corresponding to that range.
+        :param cum_freq: A cumulative value received from the compressed data. This value lies inside one of the ranges
+                         specified in the cumulative frequencies list, and this range is mapped to a specific value that
+                         was compressed.
+        :return: The byte/EOF value associated with the range `cum_freq` lies in.
+        :raises ValueError: If cum_freq is not within the range [0, total_frequency).
+        """
+        # Perform binary search (return the index found):
+        def binary_search(left: int, right: int) -> Optional[int]:
+            if left > right:
+                return None
+            middle = (left + right) // 2
+            if self.cum_freqs[middle][0] <= cum_freq <= self.cum_freqs[middle][1]:
+                return middle
+            elif self.cum_freqs[middle][0] > cum_freq:
+                return binary_search(left, middle - 1)
+            else:
+                return binary_search(middle + 1, right)
+
+        # Return the found index, makes sure to check in case it's an EOF:
+        if found_index := binary_search(0, len(self.cum_freqs) - 1):
+            return found_index if found_index <= 0xFF else ArithmeticCompressor.EOF
+        # If an index wasn't found, the value is not within the cumulative frequencies range:
+        else:
+            raise ValueError(f'Cumulative frequency is not within [0, {self.cum_freqs[-1]}) (got {cum_freq})')
 
     def decode(self, compressed_data: bytes) -> bytes:
         pass
