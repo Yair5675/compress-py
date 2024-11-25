@@ -82,8 +82,7 @@ class Decoder:
         Calculates the cumulative frequency currently saved in `self.value` and returns it.
         :return: The cumulative frequency currently saved in `self.value`.
         """
-        # TODO: Complete the method using a calculation
-        pass
+        return (((self.value - self.low + 1) * self.total_freq) - 1) // self.width
 
     def get_byte_from_cum(self, cum_freq: int) -> int:
         """
