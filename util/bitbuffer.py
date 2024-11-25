@@ -106,6 +106,9 @@ class BitBuffer:
 
         return bytes(stored_bits)
 
+    def __repr__(self) -> str:
+        return "".join(bin(num)[2:].zfill(32) for num in self.__saved_data) + bin(self.__current_int)[2:].zfill(32)[:self.__bit_idx]
+
     @staticmethod
     def __get_byte_from_int(integer: int, byte_idx: int) -> int:
         """
