@@ -2,6 +2,7 @@ import itertools
 from collections import defaultdict
 from util.bitbuffer import BitBuffer
 from compressors.arithmetic.bits_system import BitsSystem
+from compressors.arithmetic.interval_state import IntervalState
 
 
 class Encoder:
@@ -100,6 +101,31 @@ class Encoder:
         # Clear the pending bits:
         self.pending_bits = 0
 
+    def process_state(self, interval_state: IntervalState, output: BitBuffer) -> None:
+        """
+        Changes the current interval and outputs bits to the output buffer according to the provided interval state.
+        The method assumes `interval_state` is not IntervalState.NON_CONVERGING.
+        :param interval_state: The state according to which the current interval will change, and may result in bits
+                               outputted to the output buffer.
+                               Cannot be IntervalState.NON_CONVERGING.
+        :param output: The output buffer. If any bits need to be outputted, they will be added to this buffer.
+        """
+        match interval_state:
+            # In case of a matching MSB, output it and make sure `low` is less than half:
+            case IntervalState.CONVERGING_0:
+                self.insert_with_pending(0, output)
+            case IntervalState.CONVERGING_1:
+                self.insert_with_pending(1, output)
+                self.low -= self.bits_system.HALF
+            # In case of a near-convergence, increment the pending bits counter and turn low's second MSB from 1 to 0:
+            case IntervalState.NEAR_CONVERGENCE:
+                self.pending_bits += 1
+                self.low -= self.bits_system.ONE_FOURTH
+
+        # In every case, Get rid of low's and width's MSB:
+        self.low <<= 1
+        self.width <<= 1
+
     def __call__(self, input_data: bytes) -> bytes:
         """
         Compresses the given input data using arithmetic coding.
@@ -120,7 +146,9 @@ class Encoder:
             # Update the current interval:
             self.update_interval(input_value)
 
-            # TODO: Process special interval states and output bits accordingly:
+            # Process special interval states and output bits accordingly:
+            while (state := IntervalState.get_state(self.low, self.low + self.width, self.bits_system)) is not IntervalState.NON_CONVERGING:
+                self.process_state(state, output)
 
         # TODO: When the loop exits, the possible boundaries are:
         #  - [01yyy, 11xxx)
