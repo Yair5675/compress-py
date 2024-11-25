@@ -150,13 +150,15 @@ class Encoder:
             while (state := IntervalState.get_state(self.low, self.low + self.width, self.bits_system)) is not IntervalState.NON_CONVERGING:
                 self.process_state(state, output)
 
-        # TODO: When the loop exits, the possible boundaries are:
-        #  - [01yyy, 11xxx)
-        #  - [00yyy, 11xxx)
-        #  - [00yyy, 10xxx)
-        #  So we must insert '01' if low is '00', and '10' if low is '01'. Along with those, any pending near-convergence
-        #  bits must be inserted as well. A simple way of doing it is just adding 1 to the near-convergence counter and
-        #  insert the value of low's second MSB:
+        # When the loop exits, the possible boundaries are:
+        # - [01yyy, 11xxx)
+        # - [00yyy, 11xxx)
+        # - [00yyy, 10xxx)
+        # So we must insert '01' if low is '00', and '10' if low is '01'. Along with those, any pending near-convergence
+        # bits must be inserted as well. A simple way of doing it is just adding 1 to the near-convergence counter and
+        # insert the value of low's second MSB:
+        self.pending_bits += 1
+        self.insert_with_pending(self.low >> (self.bits_system.BITS_USED - 2), output)
 
         # The padding that BitBuffer appends to the data is ok. Since it is only zeroes, it does not change the number
         # that the compressor had produced:
