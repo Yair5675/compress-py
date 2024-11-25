@@ -102,8 +102,12 @@ class Decoder:
         This essentially updates the currently saved interval to match the input value.
         :param input_value: A byte value or EOF value whose CFI will determine the next interval.
         """
-        # TODO: Complete the method similar to Encoder
-        pass
+        # Get the CFI of the input value:
+        cum_interval = self.cfis[input_value]
+
+        # Update low and width:
+        self.low += self.width * cum_interval[0] // self.total_freq
+        self.width = self.width * cum_interval[1] // self.total_freq - self.width * cum_interval[0] // self.total_freq
 
     def __call__(self, compressed_data: bytes) -> bytes:
         """
