@@ -1,4 +1,6 @@
+import itertools
 from collections import defaultdict
+from util.bitbuffer import BitBuffer
 from compressors.arithmetic.bits_system import BitsSystem
 
 
@@ -70,3 +72,45 @@ class Encoder:
 
         # The total frequency is now saved in prev_cum_freq:
         self.total_freq = prev_cum_freq
+
+    def update_interval(self, input_value: int) -> None:
+        """
+        Updates the 'low' and 'width' attributes of the object based on the input value.
+        This essentially updates the currently saved interval to match the input value.
+        :param input_value: A byte value or EOF value whose CFI will determine the next interval.
+        """
+        # TODO: Complete the method
+
+    def __call__(self, input_data: bytes) -> bytes:
+        """
+        Compresses the given input data using arithmetic coding.
+        :param input_data: The data which will be compressed.
+        :return: A bytes object containing the input data after compression.
+        """
+        # Initialize CFI dictionary:
+        self.init_cum_freqs(input_data)
+
+        # Initialize the current interval and the pending bits counter:
+        self.low, self.width, self.pending_bits = 0, self.bits_system.MAX_CODE, 0
+
+        # Initialize output buffer:
+        output = BitBuffer()
+
+        # Compress the full message, along with an EOF value, to let the decoder know when the input ends:
+        for input_value in itertools.chain(input_data, (self.eof,)):
+            # Update the current interval:
+            self.update_interval(input_value)
+
+            # TODO: Process special interval states and output bits accordingly:
+
+        # TODO: When the loop exits, the possible boundaries are:
+        #  - [01yyy, 11xxx)
+        #  - [00yyy, 11xxx)
+        #  - [00yyy, 10xxx)
+        #  So we must insert '01' if low is '00', and '10' if low is '01'. Along with those, any pending near-convergence
+        #  bits must be inserted as well. A simple way of doing it is just adding 1 to the near-convergence counter and
+        #  insert the value of low's second MSB:
+
+        # The padding that BitBuffer appends to the data is ok. Since it is only zeroes, it does not change the number
+        # that the compressor had produced:
+        return bytes(output)
