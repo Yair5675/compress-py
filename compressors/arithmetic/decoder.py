@@ -1,5 +1,6 @@
 import util
 from util.bitbuffer import BitBuffer
+from compressors.arithmetic import IntervalState
 from compressors.arithmetic.bits_system import BitsSystem
 
 
@@ -10,6 +11,9 @@ class Decoder:
 
         # The current piece of the compressed data held and processed:
         '__value',
+
+        # The index pointing to the next bit that will be read from the compressed data:
+        'next_bit_offset',
 
         # Bits system used when holding/calculating values:
         'bits_system',
@@ -109,6 +113,36 @@ class Decoder:
         self.low += self.width * cum_interval[0] // self.total_freq
         self.width = self.width * cum_interval[1] // self.total_freq - self.width * cum_interval[0] // self.total_freq
 
+    def process_state(self, compressed_data: bytes, interval_state: IntervalState) -> None:
+        """
+        Changes the current interval and the current part of the compressed data held according to the provided interval
+        state.
+        The method assumes `interval_state` is not IntervalState.NON_CONVERGING.
+        :param compressed_data: The data which will be compressed. Bits from it will be read when processing the state.
+        :param interval_state: The state according to which the current interval and `self.value` will change.
+                               Cannot be IntervalState.NON_CONVERGING.
+        """
+        match interval_state:
+            # In the case of CONVERGING_0, do nothing for now.
+            case IntervalState.CONVERGING_1:
+                # Clear leftmost bit:
+                self.low -= self.bits_system.HALF
+                self.value -= self.bits_system.HALF
+            case IntervalState.NEAR_CONVERGENCE:
+                # Clear second MSB:
+                self.low -= self.bits_system.ONE_FOURTH
+                self.value -= self.bits_system.ONE_FOURTH
+        # Get rid of the MSB:
+        self.low <<= 1
+        self.width <<= 1
+
+        # Insert another bit of the input to value:
+        compressed_bits_count = 8 * len(compressed_data)
+        next_bit = util.get_bit(compressed_data, self.next_bit_offset) if self.next_bit_offset < compressed_bits_count else 0
+        self.next_bit_offset += 1
+
+        self.value = (self.value << 1) | next_bit
+
     def __call__(self, compressed_data: bytes) -> bytes:
         """
         Decompresses the data using arithmetic coding and the provided CFIs dictionary.
@@ -120,7 +154,7 @@ class Decoder:
 
         # Initialize the input value, and set the next bit offset to the amount of bits that were read:
         self.init_value(compressed_data)
-        next_bit_offset = self.bits_system.BITS_USED
+        self.next_bit_offset = self.bits_system.BITS_USED
 
         # Initialize the output buffer:
         output = BitBuffer()
@@ -138,8 +172,11 @@ class Decoder:
             else:
                 output.insert_bits(org_val, 8)
 
-            # TODO: Now update the interval and process its state:
+            # Now update the interval and process its state:
             self.update_interval(org_val)
+
+            while (state := IntervalState.get_state(self.low, self.high, self.bits_system)) is not IntervalState.NON_CONVERGING:
+                self.process_state(compressed_data, state)
 
         return bytes(output)
 
