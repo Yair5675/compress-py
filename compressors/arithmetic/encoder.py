@@ -51,6 +51,7 @@ class Encoder:
         """
         Initializes the cumulative frequency dictionary and the total frequency attributes according to the input data.
         """
+        # TODO: Update later to adaptive arithmetic coding to achieve better compression rate
         # Count all byte value occurrences, but limit the maximum frequency to have half the bits used by the bits
         # system (ensuring all byte values can always be encoded with no interval overlap):
         TOTAL_FREQ_LIMIT = 1 << (self.bits_system.BITS_USED // 2)
