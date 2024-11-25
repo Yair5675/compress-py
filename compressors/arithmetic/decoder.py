@@ -1,4 +1,5 @@
 import util
+from util.bitbuffer import BitBuffer
 from compressors.arithmetic.bits_system import BitsSystem
 
 
@@ -9,9 +10,6 @@ class Decoder:
 
         # The current piece of the compressed data held and processed:
         '__value',
-
-        # An index to the next bit in the compressed data that will be read:
-        'bit_offset',
 
         # Bits system used when holding/calculating values:
         'bits_system',
@@ -78,3 +76,65 @@ class Decoder:
         # Shift additional zeroes if needed:
         remaining = max(0, self.bits_system.BITS_USED - input_bits_len)
         self.value <<= remaining
+
+    def calc_cum_freq(self) -> int:
+        """
+        Calculates the cumulative frequency currently saved in `self.value` and returns it.
+        :return: The cumulative frequency currently saved in `self.value`.
+        """
+        # TODO: Complete the method using a calculation
+        pass
+
+    def get_byte_from_cum(self, cum_freq: int) -> int:
+        """
+        Given a cumulative frequency, the method returns the byte value (or EOF) whose cumulative frequency interval
+        contains the given cumulative frequency.
+        :param cum_freq: A cumulative frequency value.
+        :return: The byte value (or EOF) that owns a CFI which contains `cum_freq`.
+        """
+        # TODO: Complete the method
+        pass
+
+    def update_interval(self, input_value: int) -> None:
+        """
+        Updates the 'low' and 'width' attributes of the object based on the input value.
+        This essentially updates the currently saved interval to match the input value.
+        :param input_value: A byte value or EOF value whose CFI will determine the next interval.
+        """
+        # TODO: Complete the method similar to Encoder
+        pass
+
+    def __call__(self, compressed_data: bytes) -> bytes:
+        """
+        Decompresses the data using arithmetic coding and the provided CFIs dictionary.
+        :param compressed_data: Data that was compressed using arithmetic coding, and the provided CFIs dictionary.
+        :return: The original data, prior to being compressed.
+        """
+        # Initialize interval:
+        self.low, self.width = 0, self.bits_system.MAX_CODE
+
+        # Initialize the input value, and set the next bit offset to the amount of bits that were read:
+        self.init_value(compressed_data)
+        next_bit_offset = self.bits_system.BITS_USED
+
+        # Initialize the output buffer:
+        output = BitBuffer()
+
+        # Continue as long as we don't encounter EOF:
+        # TODO: Add some sort of timeout in case bad data was given
+        while True:
+            # Calculate the cumulative frequency of self.value:
+            cum_freq: int = self.calc_cum_freq()
+
+            # Get the byte value corresponding to that value, and break if it's EOF:
+            org_val = self.get_byte_from_cum(cum_freq)
+            if org_val == self.eof:
+                break
+            else:
+                output.insert_bits(org_val, 8)
+
+            # TODO: Now update the interval and process its state:
+            self.update_interval(org_val)
+
+        return bytes(output)
+
