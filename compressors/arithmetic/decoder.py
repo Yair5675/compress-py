@@ -1,3 +1,4 @@
+import util
 from compressors.arithmetic.bits_system import BitsSystem
 
 
@@ -59,3 +60,21 @@ class Decoder:
     @value.setter
     def value(self, value):
         self.__value = value & self.bits_system.MAX_CODE
+
+    def init_value(self, compressed_bytes: bytes) -> None:
+        """
+        Inserts the first bits of `compressed_bytes` into `self.value`.
+        :param compressed_bytes: The data the Decoder will compress. Its first bits will be loaded into the object to
+                                 begin decompression.
+        """
+        # Initialize value:
+        self.value = 0
+
+        # Calculate how many bits we can get from the compressed data:
+        input_bits_len = min(8 * len(compressed_bytes), self.bits_system.BITS_USED)
+        for i in range(input_bits_len):
+            self.value = (self.value << 1) | util.get_bit(compressed_bytes, i)
+
+        # Shift additional zeroes if needed:
+        remaining = max(0, self.bits_system.BITS_USED - input_bits_len)
+        self.value <<= remaining
