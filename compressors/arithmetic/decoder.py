@@ -91,8 +91,10 @@ class Decoder:
         :param cum_freq: A cumulative frequency value.
         :return: The byte value (or EOF) that owns a CFI which contains `cum_freq`.
         """
-        # TODO: Complete the method
-        pass
+        for byte_val, cfi in self.cfis.items():
+            if cfi[0] <= cum_freq < cfi[1]:
+                return byte_val
+        raise ValueError(f"{cum_freq} is not a valid cumulative frequency value")
 
     def update_interval(self, input_value: int) -> None:
         """
