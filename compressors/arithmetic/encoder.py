@@ -86,6 +86,20 @@ class Encoder:
         self.low += self.width * cum_interval[0] // self.total_freq
         self.width = self.width * cum_interval[1] // self.total_freq - self.width * cum_interval[0] // self.total_freq
 
+    def insert_with_pending(self, bit: int, output: BitBuffer) -> None:
+        # Insert the bit:
+        output.insert_bits(bit, 1)
+
+        # Insert pending bits in groups of 32:
+        bits_to_insert = 0 if bit else 0xFFFFFFFF
+        for _ in range(self.pending_bits // 32):
+            output.insert_bits(bits_to_insert, 32)
+        if self.pending_bits % 32 > 0:
+            output.insert_bits(bits_to_insert, self.pending_bits % 32)
+
+        # Clear the pending bits:
+        self.pending_bits = 0
+
     def __call__(self, input_data: bytes) -> bytes:
         """
         Compresses the given input data using arithmetic coding.
