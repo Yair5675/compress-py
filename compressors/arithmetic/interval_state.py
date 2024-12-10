@@ -2,6 +2,44 @@ from enum import Enum, auto
 from compressors.arithmetic import bits_system
 
 
+class Interval:
+    """
+    A class representing an encoding/decoding interval.
+    """
+    __slots__ = (
+        # Starting point of the interval, between 0 and 1:
+        'low',
+        # The width of the interval, between 0 and 1:
+        'width'
+    )
+
+    def __init__(self, low: int, width: int) -> 'Interval':
+        self.low: int = low
+        self.width: int = width
+
+    @property
+    def high(self):
+        return self.low + self.width
+
+    def get_state(self, system: bits_system.BitsSystem) -> 'IntervalState':
+        """
+        Returns the state of the current interval, represented as the IntervalState enum.
+        :param system: The bits system used for representing the `low` and `width` values of the interval.
+        :return: An IntervalState variant describing the state of the current interval.
+        """
+        # Check convergence:
+        if self.low >= system.HALF:
+            return IntervalState.CONVERGING_1
+        elif self.high < system.HALF:
+            return IntervalState.CONVERGING_0
+        # Check near-convergence:
+        elif self.low >= system.ONE_FOURTH and self.high < system.THREE_FOURTHS:
+            return IntervalState.NEAR_CONVERGENCE
+        # Default - non-converging:
+        else:
+            return IntervalState.NON_CONVERGING
+
+
 class IntervalState(Enum):
     """
     During compression/decompression, the interval boundaries 'low' and 'high' determine the output. Their state
