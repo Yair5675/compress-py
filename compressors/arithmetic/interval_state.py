@@ -10,30 +10,32 @@ class Interval:
         # Starting point of the interval, between 0 and 1:
         'low',
         # The width of the interval, between 0 and 1:
-        'width'
+        'width',
+        # The bits system used in the `low` and `width` values:
+        'system'
     )
 
-    def __init__(self, low: int, width: int) -> 'Interval':
+    def __init__(self, low: int, width: int, system: bits_system.BitsSystem) -> 'Interval':
         self.low: int = low
         self.width: int = width
+        self.system: bits_system.BitsSystem = system
 
     @property
     def high(self):
         return self.low + self.width
 
-    def get_state(self, system: bits_system.BitsSystem) -> 'IntervalState':
+    def get_state(self) -> 'IntervalState':
         """
         Returns the state of the current interval, represented as the IntervalState enum.
-        :param system: The bits system used for representing the `low` and `width` values of the interval.
         :return: An IntervalState variant describing the state of the current interval.
         """
         # Check convergence:
-        if self.low >= system.HALF:
+        if self.low >= self.system.HALF:
             return IntervalState.CONVERGING_1
-        elif self.high < system.HALF:
+        elif self.high < self.system.HALF:
             return IntervalState.CONVERGING_0
         # Check near-convergence:
-        elif self.low >= system.ONE_FOURTH and self.high < system.THREE_FOURTHS:
+        elif self.low >= self.system.ONE_FOURTH and self.high < self.system.THREE_FOURTHS:
             return IntervalState.NEAR_CONVERGENCE
         # Default - non-converging:
         else:
