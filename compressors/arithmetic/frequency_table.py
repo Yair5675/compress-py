@@ -45,3 +45,37 @@ class FrequencyTable(ABC):
                  value-interval combinations make no sense.
         """
         pass
+
+
+class EqualFrequenciesTable(FrequencyTable):
+    """
+    A frequency table that assumes all byte values and the eof value appear the same number of times in the data.
+    """
+    def get_prob_interval(self, symbol: int) -> ProbabilityInterval:
+        """
+        Calculates the associated probability interval of the symbol, assuming all of them appear the same amount of
+        times.
+        :param symbol: A value in the range [0, 256] whose probability interval will be returned.
+        :return: A probability interval representing the given symbol.
+        """
+        # Check range:
+        if 0 > symbol or symbol > 256:
+            raise ValueError(f"Invalid input value: {symbol} is neither a byte value nor an EOF value (256)")
+
+        # Return equal probability:
+        return ProbabilityInterval(low_freq=symbol, high_freq=symbol + 1, tot_freq=257)
+
+    def get_symbol(self, value: int, interval: Interval) -> Optional[int]:
+        """
+        Returns the byte value (or eof value) associated with the value's location inside the interval, assuming all
+        values appear the same number of times in the data.
+        """
+        # Calculate cumulative frequency:
+        cum_freq = (((value - interval.low + 1) * 257) - 1) // interval.width
+
+        # If the cumulative frequency is not within the range [0, 256], return None:
+        if 0 > cum_freq or cum_freq > 256:
+            return None
+
+        # Since every symbol is assumed to have a frequency of 1, the cumulative frequency IS the symbol:
+        return cum_freq
