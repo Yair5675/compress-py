@@ -1,6 +1,7 @@
 from typing import Optional
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from compressors.arithmetic.fenwick import FenwickTree
 from compressors.arithmetic.interval_state import Interval
 
 
@@ -79,3 +80,75 @@ class EqualFrequenciesTable(FrequencyTable):
 
         # Since every symbol is assumed to have a frequency of 1, the cumulative frequency IS the symbol:
         return cum_freq
+
+
+class MutableFrequencyTable(FrequencyTable):
+    """
+    A frequency table that allows users to change and update the frequencies of a given value.
+    """
+
+    __slots__ = (
+        # Total cumulative frequencies saved in the table (converts O(log n) to O(1) when calculating it):
+        'tot_freqs',
+
+        # The fenwick tree holding the frequencies, allows us to efficiently calculate and update cumulative
+        # frequencies:
+        'frequencies'
+    )
+
+    def __init__(self):
+        """
+        Initializes an empty MutableFrequencyTable.
+        """
+        # Initialize a fenwick tree that holds 257 zeroes (256 byte values + an EOF value):
+        self.frequencies: FenwickTree = FenwickTree([0] * 257)
+        self.tot_freqs: int = 0
+
+    def get_prob_interval(self, symbol: int) -> ProbabilityInterval:
+        # Check range:
+        if 0 > symbol or symbol > 256:
+            raise ValueError(f"Invalid input value: {symbol} is neither a byte value nor an EOF value (256)")
+
+        # Calculate cumulative frequencies for both `low` and `high`:
+        low_cum, high_cum = self.frequencies.get_sum(symbol), self.frequencies.get_sum(symbol + 1)
+        return ProbabilityInterval(low_cum, high_cum, self.tot_freqs)
+
+    def get_symbol(self, value: int, interval: Interval) -> Optional[int]:
+        # Calculate cumulative frequency:
+        cum_freq = (((value - interval.low + 1) * self.tot_freqs) - 1) // interval.width
+
+        # Perform binary search in combination with fenwick tree to find the corresponding symbol in O(log^2(n)):
+        def binary_search(left: int, right: int):
+            if left > right:
+                return None
+
+            middle = (left + right) // 2
+            low_cum, high_cum = self.frequencies.get_sum(middle), self.frequencies.get_sum(middle + 1)
+            if low_cum > cum_freq:
+                return binary_search(left, middle - 1)
+            elif high_cum <= cum_freq:
+                return binary_search(middle + 1, right)
+            else:
+                return middle
+
+        # The binary search returns None if the cumulative frequency is not within the saved range, so just return its
+        # result:
+        return binary_search(0, 257)
+
+    def increment_symbol(self, symbol: int, amount: int = 1) -> None:
+        """
+        Increments the frequency of the given symbol by some amount.
+        :param symbol: The symbol whose frequency will be incremented, must be in the range [0, 256].
+        :param amount: The amount that will be added to the current frequency of `symbol`.
+        """
+        # Check range:
+        if 0 > symbol or symbol > 256:
+            raise ValueError(f"Invalid input value: {symbol} is neither a byte value nor an EOF value (256)")
+
+        # Check amount:
+        if amount < 0:
+            raise ValueError("Negative increment is not allowed")
+
+        # Use our beloved fenwick tree:
+        self.frequencies.add(symbol, amount)
+        self.tot_freqs += amount
