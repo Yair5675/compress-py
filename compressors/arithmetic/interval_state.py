@@ -24,6 +24,17 @@ class Interval:
     def high(self):
         return self.low + self.width
 
+    def update(self, probability_interval) -> None:
+        """
+        Given a probability interval representing some section inside the current interval object, the method transforms
+        the interval object into this subsection.
+        :param probability_interval: A ProbabilityInterval object representing a subsection in the current interval.
+        """
+        # Update low and width:
+        self.low += self.width * probability_interval.low_freq // probability_interval.tot_freq
+        self.width = (self.width * probability_interval.high_freq // probability_interval.tot_freq -
+                      self.width * probability_interval.low_freq // probability_interval.tot_freq)
+
     def get_state(self) -> 'IntervalState':
         """
         Returns the state of the current interval, represented as the IntervalState enum.
