@@ -1,7 +1,7 @@
 from typing import Optional
 from dataclasses import dataclass
 from collections import defaultdict
-from compressors.arithmetic.frequency_table import MutableFrequencyTable, ProbabilityInterval
+from compressors.arithmetic.frequency_table import EqualFrequenciesTable, MutableFrequencyTable, ProbabilityInterval
 
 
 @dataclass(frozen=True)
@@ -72,3 +72,37 @@ class PPMModel:
 
         # Update symbol:
         freq_table.increment_symbol(symbol)
+
+
+class PPMModelChain:
+    """
+    Main PPM model class, contains multiple PPM models with different orders to provide probability intervals
+    considering the symbols' contexts.
+    """
+    __slots__ = (
+        # The maximum model order in the chain, will determine the space usage by the program (generally it is O(257^n),
+        # so let's keep it low ok?):
+        '__max_order',
+
+        # The constant, -1 context, model we fall back on in case all mutable models fail us:
+        '__fallback_model',
+
+        # The tuple containing the models:
+        '__models'
+    )
+
+    def __init__(self, max_order: int) -> 'PPMModelChain':
+        # Set max order once and for all (also validate):
+        if max_order < 0:
+            raise ValueError("Maximum model order mustn't be negative")
+        self.__max_order: int = max_order
+
+        # Initialize fallback model:
+        self.__fallback_model: EqualFrequenciesTable = EqualFrequenciesTable()
+
+        # Initialize mutable models according to max_order:
+        self.__models: tuple[PPMModel] = tuple(PPMModel(i) for i in range(max_order + 1))
+
+    @property
+    def max_order(self) -> int:
+        return self.__max_order
