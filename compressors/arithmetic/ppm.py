@@ -1,5 +1,6 @@
 from typing import Optional
 from dataclasses import dataclass
+from collections import defaultdict
 from compressors.arithmetic.frequency_table import MutableFrequencyTable, ProbabilityInterval
 
 
@@ -27,7 +28,9 @@ class PPMModel:
 
     def __init__(self, order: int) -> 'PPMModel':
         self.order: int = order
-        self.tables: dict[Context, MutableFrequencyTable] = {}
+
+        # Implement tables as a defaultdict that creates frequency tables if necessary:
+        self.tables: defaultdict[Context, MutableFrequencyTable] = defaultdict(MutableFrequencyTable)
 
     def get_prob_interval(self, symbol: int, context: Context) -> Optional[ProbabilityInterval]:
         """
@@ -45,9 +48,7 @@ class PPMModel:
             raise ValueError(f"History length must equal the model's order")
 
         # Get the frequency table corresponding to that context:
-        freq_table: MutableFrequencyTable = self.tables.get(context)
-        if freq_table is None:
-            return None
+        freq_table: MutableFrequencyTable = self.tables[context]
 
         # Get the probability interval, and return it only if it doesn't represent zero probability:
         prob_interval: ProbabilityInterval = freq_table.get_prob_interval(symbol)
@@ -66,11 +67,8 @@ class PPMModel:
         if self.order != len(context):
             raise ValueError(f"Context length must equal the model's order")
 
-        # Get the frequency table assigned with the context (if one doesn't exist, create it):
-        freq_table: MutableFrequencyTable = self.tables.get(context)
-        if freq_table is None:
-            freq_table = MutableFrequencyTable()
-            self.tables[context] = freq_table
+        # Get the frequency table assigned with the context:
+        freq_table: MutableFrequencyTable = self.tables[context]
 
         # Update symbol:
         freq_table.increment_symbol(symbol)
