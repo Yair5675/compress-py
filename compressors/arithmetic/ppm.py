@@ -52,3 +52,25 @@ class PPMModel:
         # Get the probability interval, and return it only if it doesn't represent zero probability:
         prob_interval: ProbabilityInterval = freq_table.get_prob_interval(symbol)
         return prob_interval if prob_interval.low_freq != prob_interval.high_freq else None
+
+    def update_model(self, symbol: int, context: Context) -> None:
+        """
+        Updates the model according to the appeared symbol and the context leading up to it.
+        This will effectively enlarge the probability assigned to 'symbol' given this context.
+        Note that the context's length MUST equal the model's order (no more, no less).
+        :param symbol: The current symbol. Its probability interval will increase (in this particular context).
+        :param context: The sequence of symbols before the given one. The number of symbols in this context must equal
+                        the model's order.
+        """
+        # Check context length:
+        if self.order != len(context):
+            raise ValueError(f"Context length must equal the model's order")
+
+        # Get the frequency table assigned with the context (if one doesn't exist, create it):
+        freq_table: MutableFrequencyTable = self.tables.get(context)
+        if freq_table is None:
+            freq_table = MutableFrequencyTable()
+            self.tables[context] = freq_table
+
+        # Update symbol:
+        freq_table.increment_symbol(symbol)
