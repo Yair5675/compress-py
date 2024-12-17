@@ -1,7 +1,6 @@
-from typing import Optional
-from dataclasses import dataclass
 from collections import defaultdict
-from compressors.arithmetic.frequency_table import EqualFrequenciesTable, MutableFrequencyTable, ProbabilityInterval
+from collections.abc import Sequence
+from compressors.arithmetic.frequency_table import *
 
 
 @dataclass(frozen=True)
@@ -106,3 +105,38 @@ class PPMModelChain:
     @property
     def max_order(self) -> int:
         return self.__max_order
+
+    def get_prob_interval(self, symbol: int, history: Sequence[int]) -> ProbabilityInterval:
+        """
+        Given a symbol and its history (previous symbols), the method returns the probability interval assigned with
+        the symbol and the most amount of previous symbols (i.e: the longest context).
+        The maximum length of the context that will be taken into account will be `max_order`, and if the sequence is
+        longer than `max_order`, only the last `max_order` elements will be taken into account.
+
+        Note that this method also updates the models saved in the object, so calling this method with the same
+        arguments will almost definitely NOT provide the same results.
+        :param symbol: The symbol whose probability interval will be returned.
+        :param history: Symbols that occurred before the current one, and will be used to better predict the probability
+                        interval of the current symbol. Note that if history contains more symbols than the maximum
+                        order of the model chain, not all of them will be considered.
+        :return: The probability interval currently associated with the symbol, given this history.
+        """
+        # Go from the highest order possible to the lowest:
+        for model_order in range(min(self.max_order, len(history), -1, -1)):
+            # Create the context:
+            current_context: Context = Context(history[-model_order:])
+
+            # Try to get the probability interval:
+            current_model: PPMModel = self.__models[model_order]
+            prob_interval: ProbabilityInterval = current_model.get_prob_interval(symbol, current_context)
+
+            # Update the current model using this context. Note that if we found the probability interval in a model,
+            # we only need to update it and models with higher order. Models with lower order won't be updated:
+            current_model.update_model(symbol, current_context)
+
+            # If the interval is not None, return it and break out of the loop. If it is, continue to the next model:
+            if prob_interval is not None:
+                return prob_interval
+
+        # If all models were searched, updated and didn't find a probability interval, use the fallback model:
+        return self.__fallback_model.get_prob_interval(symbol)
