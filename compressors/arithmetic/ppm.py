@@ -1,5 +1,6 @@
+from typing import Optional
 from dataclasses import dataclass
-from compressors.arithmetic.frequency_table import MutableFrequencyTable
+from compressors.arithmetic.frequency_table import MutableFrequencyTable, ProbabilityInterval
 
 
 @dataclass(frozen=True)
@@ -27,3 +28,27 @@ class PPMModel:
     def __init__(self, order: int) -> 'PPMModel':
         self.order: int = order
         self.tables: dict[Context, MutableFrequencyTable] = {}
+
+    def get_prob_interval(self, symbol: int, context: Context) -> Optional[ProbabilityInterval]:
+        """
+        Given a symbol and its context, the model returns the probability interval assigned to that symbol-context pair.
+        Note that the length of the context HAS to match the order of the model (no more and no less).
+        :param symbol: The symbol whose probability interval will be returned.
+        :param context: The sequence of symbols that appeared before the current symbol. The length of this context
+                        must match the order of the model EXACTLY (i.e: If the model's order is 3, context will contain
+                        three symbols).
+        :return: If the symbol, considering the given context, isn't associated with any probability interval, None is
+                 returned. Otherwise, this associated probability interval is returned.
+        """
+        # Check history length:
+        if self.order != len(context):
+            raise ValueError(f"History length must equal the model's order")
+
+        # Get the frequency table corresponding to that context:
+        freq_table: MutableFrequencyTable = self.tables.get(context)
+        if freq_table is None:
+            return None
+
+        # Get the probability interval, and return it only if it doesn't represent zero probability:
+        prob_interval: ProbabilityInterval = freq_table.get_prob_interval(symbol)
+        return prob_interval if prob_interval.low_freq != prob_interval.high_freq else None
