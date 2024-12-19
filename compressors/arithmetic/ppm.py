@@ -1,6 +1,7 @@
 from collections import defaultdict
 from collections.abc import Sequence
 from compressors.arithmetic.frequency_table import *
+from compressors.arithmetic.interval_state import Interval
 
 
 @dataclass(frozen=True)
@@ -140,3 +141,47 @@ class PPMModelChain:
 
         # If all models were searched, updated and didn't find a probability interval, use the fallback model:
         return self.__fallback_model.get_prob_interval(symbol)
+
+    def get_symbol(self, value: int, current_interval: Interval, history: Sequence[int]) -> Optional[int]:
+        """
+        Given the current interval in the decoding process, and a value inside that interval, the method returns the
+        symbol associated with the value's location inside the interval.
+        The method will try to calculate the symbol starting with the highest-order model and ending with order 0 model.
+        If all models fail to calculate the symbol, the fallback frequency table will provide it.
+        :param value: A value inside the current interval, whose location inside it will determine the symbol returned.
+                      Note that the data inside `value` should match the bits system saved inside `current_interval`.
+        :param current_interval: The current interval in the decoding process.
+        :param history: Symbols that occurred before the current one. They will allow the method to pick the exact
+                        symbol encoded during compression by choosing the right models and frequency tables. Note that
+                        if history contains more symbols than the maximum order of the model chain, not all of them will
+                        be considered.
+        :return: The symbol that matched the location of `value` inside `current_interval`. If the combinations of
+                 `value` and `current_interval` are nonsensical (produce an invalid cumulative frequency value in all
+                 models), None will be returned.
+        """
+        # Go from the highest order possible to the lowest:
+        for model_order in range(min(self.max_order, len(history), -1, -1)):
+            # Create the context:
+            current_context: Context = Context(history[-model_order:])
+
+            # Calculate cumulative frequency for this model:
+            current_table: MutableFrequencyTable = self.__models[model_order].tables[current_context]
+            cum_freq: int = PPMModelChain.__calc_cum_freq(value, current_interval, current_table)
+
+            # If the cumulative frequency is between 0 and the model's total frequencies value, calculate and return
+            # the symbol:
+            if 0 <= cum_freq < current_table.get_total_frequencies():
+                return current_table.get_symbol(cum_freq)
+
+        # If all models were searched and didn't find a symbol, try the fallback model:
+        return self.__fallback_model.get_symbol(
+            PPMModelChain.__calc_cum_freq(value, current_interval, self.__fallback_model)
+        )
+
+    @staticmethod
+    def __calc_cum_freq(value: int, interval: Interval, table: FrequencyTable) -> int:
+        """
+        A helper method that calculates cumulative frequency from a value and its position in an interval, while using
+        a frequency table.
+        """
+        return (((value - interval.low + 1) * table.get_total_frequencies()) - 1) // interval.width
