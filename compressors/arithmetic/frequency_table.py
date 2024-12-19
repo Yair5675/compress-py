@@ -43,11 +43,25 @@ class FrequencyTable(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_total_frequencies(self) -> int:
+        """
+        Calculates the sum of all frequencies saved in the table (i.e: the `high` value for the last symbol's
+        probability interval).
+        :return: The sum of all frequencies in the table.
+        """
+        pass
+
 
 class EqualFrequenciesTable(FrequencyTable):
     """
     A frequency table that assumes all byte values and the eof value appear the same number of times in the data.
     """
+
+    def get_total_frequencies(self) -> int:
+        # If there are 257 symbols, and each is assumed to have a frequency of one, then the total is:
+        return 257
+
     def get_prob_interval(self, symbol: int) -> ProbabilityInterval:
         """
         Calculates the associated probability interval of the symbol, assuming all of them appear the same amount of
@@ -73,6 +87,8 @@ class EqualFrequenciesTable(FrequencyTable):
 
         # Since every symbol is assumed to have a frequency of 1, the cumulative frequency IS the symbol:
         return cumulative_frequency
+
+
 
 
 class MutableFrequencyTable(FrequencyTable):
@@ -143,3 +159,7 @@ class MutableFrequencyTable(FrequencyTable):
         # Use our beloved fenwick tree:
         self.frequencies.add(symbol, amount)
         self.tot_freqs += amount
+
+    def get_total_frequencies(self) -> int:
+        # We already save it to provide O(1) calculation:
+        return self.tot_freqs
