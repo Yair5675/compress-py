@@ -2,7 +2,6 @@ from typing import Optional
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from compressors.arithmetic.fenwick import FenwickTree
-from compressors.arithmetic.interval_state import Interval
 
 
 @dataclass(frozen=True)
@@ -33,17 +32,14 @@ class FrequencyTable(ABC):
         pass
 
     @abstractmethod
-    def get_symbol(self, value: int, interval: Interval) -> Optional[int]:
+    def get_symbol(self, cumulative_frequency: int) -> Optional[int]:
         """
-        Given an interval and a value inside that interval, the method returns the symbol associated with the location
-        of the value inside the interval.
-        :param value: A fractional value represented as an integer using a bits system. This value's bits system must
-                      be the same as the system saved inside the given interval object, otherwise unexpected results
-                      may arise.
-        :param interval: The interval used in arithmetic encoding. It represents the range of possibilities for `value`,
-                         and determines the bits system used by both of them.
-        :return: The byte value (or EOF value) associated with the value's location inside the interval, or None if the
-                 value-interval combinations make no sense.
+        Given a cumulative frequency value, the table returns the symbol whose probability interval contains this value.
+        If no symbol's interval contains the cumulative frequency, None is returned.
+        :param cumulative_frequency: A cumulative frequency value that lies inside some symbol's interval. The method
+                                     will find and return this symbol.
+        :return: The byte value (or EOF value) associated with the cumulative frequency, or None if a matching interval
+                 is not found.
         """
         pass
 
@@ -66,20 +62,17 @@ class EqualFrequenciesTable(FrequencyTable):
         # Return equal probability:
         return ProbabilityInterval(low_freq=symbol, high_freq=symbol + 1, tot_freq=257)
 
-    def get_symbol(self, value: int, interval: Interval) -> Optional[int]:
+    def get_symbol(self, cumulative_frequency: int) -> Optional[int]:
         """
-        Returns the byte value (or eof value) associated with the value's location inside the interval, assuming all
-        values appear the same number of times in the data.
+        Returns the byte value (or eof value) associated with the cumulative frequency, assuming all symbols appear the
+        same number of times in the data.
         """
-        # Calculate cumulative frequency:
-        cum_freq = (((value - interval.low + 1) * 257) - 1) // interval.width
-
         # If the cumulative frequency is not within the range [0, 256], return None:
-        if 0 > cum_freq or cum_freq > 256:
+        if 0 > cumulative_frequency or cumulative_frequency > 256:
             return None
 
         # Since every symbol is assumed to have a frequency of 1, the cumulative frequency IS the symbol:
-        return cum_freq
+        return cumulative_frequency
 
 
 class MutableFrequencyTable(FrequencyTable):
@@ -114,10 +107,7 @@ class MutableFrequencyTable(FrequencyTable):
         low_cum, high_cum = self.frequencies.get_sum(symbol), self.frequencies.get_sum(symbol + 1)
         return ProbabilityInterval(low_cum, high_cum, self.tot_freqs)
 
-    def get_symbol(self, value: int, interval: Interval) -> Optional[int]:
-        # Calculate cumulative frequency:
-        cum_freq = (((value - interval.low + 1) * self.tot_freqs) - 1) // interval.width
-
+    def get_symbol(self, cumulative_frequency: int) -> Optional[int]:
         # Perform binary search in combination with fenwick tree to find the corresponding symbol in O(log^2(n)):
         def binary_search(left: int, right: int):
             if left > right:
@@ -125,9 +115,9 @@ class MutableFrequencyTable(FrequencyTable):
 
             middle = (left + right) // 2
             low_cum, high_cum = self.frequencies.get_sum(middle), self.frequencies.get_sum(middle + 1)
-            if low_cum > cum_freq:
+            if low_cum > cumulative_frequency:
                 return binary_search(left, middle - 1)
-            elif high_cum <= cum_freq:
+            elif high_cum <= cumulative_frequency:
                 return binary_search(middle + 1, right)
             else:
                 return middle
