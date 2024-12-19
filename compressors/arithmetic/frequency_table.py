@@ -100,8 +100,9 @@ class MutableFrequencyTable(FrequencyTable):
         """
         Initializes an empty MutableFrequencyTable.
         """
-        # Initialize a fenwick tree that holds 257 zeroes (256 byte values + an EOF value):
-        self.frequencies: FenwickTree = FenwickTree([0] * 257)
+        # Initialize a fenwick tree that holds 258 zeroes (256 byte values + an EOF value, and remember each index's
+        # interval is defined by the current AND next index, so we add 1 element at the end):
+        self.frequencies: FenwickTree = FenwickTree([0] * 258)
         self.tot_freqs: int = 0
 
     def get_prob_interval(self, symbol: int) -> ProbabilityInterval:
