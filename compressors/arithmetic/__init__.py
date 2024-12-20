@@ -117,8 +117,20 @@ class Encoder(StateCallback):
         Returns the bytes of the encoded values inside the encoder.
         :return: The bytes representing the encoding of all values provided to the Encoder.
         """
-        # TODO
-        pass
+        # When the encoding is finished, the possible interval boundaries are:
+        # - [01yyy, 11xxx)
+        # - [00yyy, 11xxx)
+        # - [00yyy, 10xxx)
+        # So we must insert '01' if low is '00', and '10' if low is '01'. Along with those, any pending near-convergence
+        # bits must be inserted as well. A simple way of doing it is just adding 1 to the near-convergence counter and
+        # insert the value of low's second MSB:
+        self.pending_bits += 1
+        interval = self.interval_iterator.current_interval
+        self.insert_with_pending(interval.low >> (interval.system.BITS_USED - 2))
+
+        # Once we inserted those, just convert the BitBuffer to bytes (padding added due to it doesn't affect us,
+        # because adding zeroes to the number's end doesn't change its value):
+        return bytes(self.output_buffer)
 
 
 class ArithmeticCompressor(Compressor):
