@@ -35,9 +35,52 @@ class Encoder(StateCallback):
 
         self.output_buffer: BitBuffer = BitBuffer()
 
+    def insert_with_pending(self, bit: int) -> None:
+        """
+        Inserts the given bit to the output buffer saved in the object, along with 'n' additional bits holding the
+        inversion of the given bit, where 'n' is the 'pending_bits' attribute in the object.
+        The method set 'pending_bits' to 0 at the end of this method.
+        :param bit: A bit that will be inserted to the output buffer, along with repetitions of its inversion. Must be
+                    1 or 0.
+        """
+        # Insert the bit:
+        self.output_buffer.insert_bits(bit, 1)
+
+        # Insert pending bits in groups of 32:
+        bits_to_insert = 0 if bit else 0xFFFFFFFF
+        for _ in range(self.pending_bits // 32):
+            self.output_buffer.insert_bits(bits_to_insert, 32)
+        if self.pending_bits % 32 > 0:
+            self.output_buffer.insert_bits(bits_to_insert, self.pending_bits % 32)
+
+        # Clear the pending bits:
+        self.pending_bits = 0
+
     def process_interval(self, interval: Interval) -> bool:
-        # TODO
-        pass
+        match interval.get_state():
+            # If the interval is non-converging, do nothing and signal to stop calling the callback:
+            case IntervalState.NON_CONVERGING:
+                return False
+
+            # In case of a matching MSB, output it and make sure `interval.low` is less than half:
+            case IntervalState.CONVERGING_0:
+                self.insert_with_pending(bit=0)
+            case IntervalState.CONVERGING_1:
+                self.insert_with_pending(bit=1)
+                interval.low -= interval.system.HALF
+
+            # In case of a near-convergence, increment the pending bits counter and turn the second MSB of the
+            # interval's 'low' value from 1 to 0 (by subtracting a fourth):
+            case IntervalState.NEAR_CONVERGENCE:
+                self.pending_bits += 1
+                interval.low -= interval.system.ONE_FOURTH
+
+        # In every case, Get rid of low's and width's MSB:
+        interval.low <<= 1
+        interval.width <<= 1
+
+        # Since we changed the interval, return True to call the callback again:
+        return True
 
     def __call__(self, value: int) -> None:
         """
