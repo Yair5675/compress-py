@@ -1,6 +1,8 @@
+from collections import deque
 from compressors import Compressor
 from util.bitbuffer import BitBuffer
 from compressors.arithmetic.ppm import PPMModelChain
+from compressors.arithmetic.frequency_table import ProbabilityInterval
 from compressors.arithmetic.interval_state import IntervalState, Interval
 from compressors.arithmetic.bits_system import BitsSystem, InsufficientValueRange
 from compressors.arithmetic.arithmetic_iter import ArithmeticIterator, StateCallback
@@ -18,6 +20,10 @@ class Encoder(StateCallback):
         # The interval iterator object:
         'interval_iterator',
 
+        # History of previous symbols encoded (for the statistical model). Its max length is the max order of the ppm
+        # model chain:
+        'history',
+
         # The statistical model chain used during encoding:
         'ppm_chain',
 
@@ -31,6 +37,7 @@ class Encoder(StateCallback):
         start_interval = Interval(0, system.MAX_CODE, system)
         self.interval_iterator: ArithmeticIterator = ArithmeticIterator(start_interval, self)
 
+        self.history: deque[int] = deque()
         self.ppm_chain: PPMModelChain = PPMModelChain(max_ppm_order)
 
         self.output_buffer: BitBuffer = BitBuffer()
@@ -82,14 +89,28 @@ class Encoder(StateCallback):
         # Since we changed the interval, return True to call the callback again:
         return True
 
+    def add_to_history(self, value: int) -> None:
+        """
+        Adds a value to the history of the encoding, and shortens that history if the new length is larger than the max
+        order of the ppm model chain.
+        :param value: A byte value or EOF value that was previously encoded.
+        """
+        self.history.append(value)
+        if len(self.history) > self.ppm_chain.max_order:
+            self.history.popleft()
+
     def __call__(self, value: int) -> None:
         """
         Encodes the given value and saves the result in the object.
         :param value: A value that will be encoded using arithmetic coding. The value must be in the range [0, 256],
                       where [0, 256) represents all byte values, and 256 represents EOF.
         """
-        # TODO
-        pass
+        # Get the probability interval of the value and update the PPM model chain:
+        prob_interval: ProbabilityInterval = self.ppm_chain.get_prob_interval(value, tuple(self.history))
+        self.add_to_history(value)
+
+        # Use the iterator with this interval:
+        self.interval_iterator.process_prob_interval(prob_interval)
 
     def get_encoded(self) -> bytes:
         """
