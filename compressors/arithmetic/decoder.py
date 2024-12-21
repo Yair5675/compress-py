@@ -1,182 +1,120 @@
 import util
-from util.bitbuffer import BitBuffer
-from compressors.arithmetic import IntervalState
+from typing import Optional
+from collections import deque
+from compressors.arithmetic.ppm import PPMModelChain
 from compressors.arithmetic.bits_system import BitsSystem
+from compressors.arithmetic.interval_state import Interval, IntervalState
+from compressors.arithmetic.arithmetic_iter import ArithmeticIterator, StateCallback
 
 
-class Decoder:
+class Decoder(StateCallback):
+    """
+    A class performing the encoding phase of arithmetic coding.
+    """
     __slots__ = (
-        # Current interval's starting value and length:
-        '__low', '__width',
-
-        # The current piece of the compressed data held and processed:
+        # The value we form from the input. Its location inside the interval in 'interval_iterator' will tell us the
+        # next symbol in the decoding process:
         '__value',
 
-        # The index pointing to the next bit that will be read from the compressed data:
-        'next_bit_offset',
+        # The interval iterator object:
+        'interval_iterator',
 
-        # Bits system used when holding/calculating values:
-        'bits_system',
+        # History of previous symbols decoded (for the statistical model). Its max length is the max order of the ppm
+        # model chain:
+        '__history',
 
-        # Special EOF symbol (mustn't be a valid byte value):
-        'eof',
+        # The statistical model chain:
+        'ppm_chain',
 
-        # Cumulative Frequency Intervals - a mapping between an input value and its interval inside the total cumulative
-        # frequency of the input:
-        'cfis',
-
-        # Total frequency of the input data:
-        'total_freq'
+        # The bytes currently decoded and the index of the next bit to load:
+        'encoded_bytes', 'next_bit_idx'
     )
 
-    def __init__(self, bits_system: BitsSystem, eof: int, cfis: dict[int, tuple[int, int]], total_freq: int) -> 'Decoder':
-        self.bits_system = bits_system
-        self.eof = eof
-        self.cfis = cfis
-        self.total_freq = total_freq
+    def __init__(self, system: BitsSystem, max_ppm_order: int):
+        start_interval = Interval(low=0, width=system.MAX_CODE, system=system)
+        self.interval_iterator: ArithmeticIterator = ArithmeticIterator(start_interval, self)
+
+        self.__history: deque[int] = deque()
+        self.ppm_chain: PPMModelChain = PPMModelChain(max_ppm_order)
 
     @property
-    def low(self):
-        return self.__low
-
-    @low.setter
-    def low(self, value):
-        self.__low = value & self.bits_system.MAX_CODE
-
-    @property
-    def high(self):
-        return self.low + self.width
-
-    @property
-    def width(self):
-        return self.__width
-
-    @width.setter
-    def width(self, value):
-        self.__width = value & self.bits_system.MAX_CODE
-
-    @property
-    def value(self):
+    def value(self) -> int:
         return self.__value
 
     @value.setter
-    def value(self, value):
-        self.__value = value & self.bits_system.MAX_CODE
+    def value(self, value) -> None:
+        # Make sure 'value' abides to the number of bits in the interval's system:
+        self.__value: int = value & self.interval_iterator.current_interval.system.MAX_CODE
 
-    def init_value(self, compressed_bytes: bytes) -> None:
-        """
-        Inserts the first bits of `compressed_bytes` into `self.value`.
-        :param compressed_bytes: The data the Decoder will compress. Its first bits will be loaded into the object to
-                                 begin decompression.
-        """
-        # Initialize value:
-        self.value = 0
+    @property
+    def history(self) -> tuple[int]:
+        return tuple(self.__history)
 
-        # Calculate how many bits we can get from the compressed data:
-        input_bits_len = min(8 * len(compressed_bytes), self.bits_system.BITS_USED)
-        for i in range(input_bits_len):
-            self.value = (self.value << 1) | util.get_bit(compressed_bytes, i)
+    def add_to_history(self, symbol: int):
+        self.__history.append(symbol)
+        if len(self.__history) > self.ppm_chain.max_order:
+            self.__history.popleft()
 
-        # Shift additional zeroes if needed:
-        remaining = max(0, self.bits_system.BITS_USED - input_bits_len)
-        self.value <<= remaining
+    def process_interval(self, interval: Interval) -> bool:
+        match interval.get_state():
+            # Signal the caller to stop calling this callback if the interval is non-converging:
+            case IntervalState.NON_CONVERGING:
+                return False
 
-    def calc_cum_freq(self) -> int:
-        """
-        Calculates the cumulative frequency currently saved in `self.value` and returns it.
-        :return: The cumulative frequency currently saved in `self.value`.
-        """
-        return (((self.value - self.low + 1) * self.total_freq) - 1) // self.width
-
-    def get_byte_from_cum(self, cum_freq: int) -> int:
-        """
-        Given a cumulative frequency, the method returns the byte value (or EOF) whose cumulative frequency interval
-        contains the given cumulative frequency.
-        :param cum_freq: A cumulative frequency value.
-        :return: The byte value (or EOF) that owns a CFI which contains `cum_freq`.
-        """
-        for byte_val, cfi in self.cfis.items():
-            if cfi[0] <= cum_freq < cfi[1]:
-                return byte_val
-        raise ValueError(f"{cum_freq} is not a valid cumulative frequency value")
-
-    def update_interval(self, input_value: int) -> None:
-        """
-        Updates the 'low' and 'width' attributes of the object based on the input value.
-        This essentially updates the currently saved interval to match the input value.
-        :param input_value: A byte value or EOF value whose CFI will determine the next interval.
-        """
-        # Get the CFI of the input value:
-        cum_interval = self.cfis[input_value]
-
-        # Update low and width:
-        self.low += self.width * cum_interval[0] // self.total_freq
-        self.width = self.width * cum_interval[1] // self.total_freq - self.width * cum_interval[0] // self.total_freq
-
-    def process_state(self, compressed_data: bytes, interval_state: IntervalState) -> None:
-        """
-        Changes the current interval and the current part of the compressed data held according to the provided interval
-        state.
-        The method assumes `interval_state` is not IntervalState.NON_CONVERGING.
-        :param compressed_data: The data which will be compressed. Bits from it will be read when processing the state.
-        :param interval_state: The state according to which the current interval and `self.value` will change.
-                               Cannot be IntervalState.NON_CONVERGING.
-        """
-        match interval_state:
-            # In the case of CONVERGING_0, do nothing for now.
+            # In the case of CONVERGING_0, do nothing for now. If it's CONVERGING_1, clear the MSB of value:
             case IntervalState.CONVERGING_1:
-                # Clear leftmost bit:
-                self.low -= self.bits_system.HALF
-                self.value -= self.bits_system.HALF
+                interval.low -= interval.system.HALF  # TODO: This line seems to have no effect, as the MSB of low is shifted out later. Find out if it's necessary
+                self.value -= interval.system.HALF
+
+            # If we are dealing with near-convergence, clear the second MSB in low and value:
             case IntervalState.NEAR_CONVERGENCE:
-                # Clear second MSB:
-                self.low -= self.bits_system.ONE_FOURTH
-                self.value -= self.bits_system.ONE_FOURTH
-        # Get rid of the MSB:
-        self.low <<= 1
-        self.width <<= 1
+                interval.low -= interval.system.ONE_FOURTH
+                self.value -= interval.system.ONE_FOURTH
 
-        # Insert another bit of the input to value:
-        compressed_bits_count = 8 * len(compressed_data)
-        next_bit = util.get_bit(compressed_data, self.next_bit_offset) if self.next_bit_offset < compressed_bits_count else 0
-        self.next_bit_offset += 1
+        # Clear the MSBs of value, low and width:
+        interval.low <<= 1
+        interval.width <<= 1
+        self.value <<= 1
 
-        self.value = (self.value << 1) | next_bit
+        # Insert a new bit from the input to value (insert 0 if we ran out of bits):
+        input_bits_count = 8 * len(self.encoded_bytes)
+        next_bit = util.get_bit(self.encoded_bytes, self.next_bit_idx) if self.next_bit_idx < input_bits_count else 0
+        self.value |= next_bit
+        self.next_bit_idx += 1
 
-    def __call__(self, compressed_data: bytes) -> bytes:
+        # Signal the caller to call the callback again on the new interval:
+        return True
+
+    def __call__(self, encoded_bytes: bytes) -> Optional[bytes]:
         """
-        Decompresses the data using arithmetic coding and the provided CFIs dictionary.
-        :param compressed_data: Data that was compressed using arithmetic coding, and the provided CFIs dictionary.
-        :return: The original data, prior to being compressed.
+        Decodes a sequence of bytes representing an encoding of data using the Encoder class.
+        :param encoded_bytes: Data that was encoded using Arithmetic Coding (with the Encoder class).
+        :return: The original data that was encoded using Arithmetic Coding, or None if the data wasn't encoded properly
+                 and caused decoding to fail.
         """
-        # Initialize interval:
-        self.low, self.width = 0, self.bits_system.MAX_CODE
+        # Save the encoded bytes and reset the next-bit-idx:
+        self.encoded_bytes, self.next_bit_idx = encoded_bytes, 0
 
-        # Initialize the input value, and set the next bit offset to the amount of bits that were read:
-        self.init_value(compressed_data)
-        self.next_bit_offset = self.bits_system.BITS_USED
+        # Use a bytearray to efficiently concatenate the decoded bytes:
+        decoded: bytearray = bytearray()
 
-        # Initialize the output buffer:
-        output = BitBuffer()
-
-        # Continue as long as we don't encounter EOF:
-        # TODO: Add some sort of timeout in case bad data was given
-        while True:
-            # Calculate the cumulative frequency of self.value:
-            cum_freq: int = self.calc_cum_freq()
-
-            # Get the byte value corresponding to that value, and break if it's EOF:
-            org_val = self.get_byte_from_cum(cum_freq)
-            if org_val == self.eof:
+        # Continue to try to decode until there is an EOF symbol, and add a timeout once the next bit index has gone
+        # over all the bits, plus the number of bits used by the bits system:
+        timeout_idx = 8 * len(encoded_bytes) + self.interval_iterator.current_interval.system.BITS_USED
+        while self.next_bit_idx < timeout_idx:
+            # Get the current symbol:
+            current_symbol = self.ppm_chain.get_symbol(self.value, self.interval_iterator.current_interval, self.history)
+            if current_symbol is None:
+                return None
+            elif current_symbol == 256:  # EOF symbol, not valid bytes value
                 break
             else:
-                output.insert_bits(org_val, 8)
+                decoded.append(current_symbol)
 
-            # Now update the interval and process its state:
-            self.update_interval(org_val)
+            # Update the interval like the encoder:
+            prob_interval = self.ppm_chain.get_prob_interval(current_symbol, self.history)
+            self.add_to_history(current_symbol)
+            self.interval_iterator.process_prob_interval(prob_interval)
 
-            while (state := IntervalState.get_state(self.low, self.high, self.bits_system)) is not IntervalState.NON_CONVERGING:
-                self.process_state(compressed_data, state)
-
-        return bytes(output)
-
+        # Convert the array to bytes:
+        return bytes(decoded)
