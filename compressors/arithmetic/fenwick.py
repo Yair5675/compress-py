@@ -11,7 +11,7 @@ class FenwickTree:
         """
         # Initialize data to hold all elements of `value` plus one. It allows us to index elements starting with 1,
         # which makes index calculations easier later:
-        self.__data = [0] * len(values) + 1
+        self.__data = [0] * (len(values) + 1)
 
         for i in range(1, len(self.__data)):
             # Copy the value from `values`:
