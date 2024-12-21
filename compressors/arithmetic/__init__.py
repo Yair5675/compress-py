@@ -22,7 +22,7 @@ class Decoder(StateCallback):
 
         # History of previous symbols decoded (for the statistical model). Its max length is the max order of the ppm
         # model chain:
-        'history',
+        '__history',
 
         # The statistical model chain:
         'ppm_chain',
@@ -35,7 +35,7 @@ class Decoder(StateCallback):
         start_interval = Interval(low=0, width=system.MAX_CODE, system=system)
         self.interval_iterator: ArithmeticIterator = ArithmeticIterator(start_interval, self)
 
-        self.history: deque[int] = deque()
+        self.__history: deque[int] = deque()
         self.ppm_chain: PPMModelChain = PPMModelChain(max_ppm_order)
 
     @property
@@ -46,6 +46,15 @@ class Decoder(StateCallback):
     def value(self, value) -> None:
         # Make sure 'value' abides to the number of bits in the interval's system:
         self.__value: int = value & self.interval_iterator.current_interval.system.MAX_CODE
+
+    @property
+    def history(self) -> tuple[int]:
+        return tuple(self.__history)
+
+    def add_to_history(self, symbol: int):
+        self.__history.append(symbol)
+        if len(self.__history) > self.ppm_chain.max_order:
+            self.__history.popleft()
 
     def process_interval(self, interval: interval_state.Interval) -> bool:
         match interval.get_state():
@@ -84,8 +93,32 @@ class Decoder(StateCallback):
         :return: The original data that was encoded using Arithmetic Coding, or None if the data wasn't encoded properly
                  and caused decoding to fail.
         """
-        # TODO
-        pass
+        # Save the encoded bytes and reset the next-bit-idx:
+        self.encoded_bytes, self.next_bit_idx = encoded_bytes, 0
+
+        # Use a bytearray to efficiently concatenate the decoded bytes:
+        decoded: bytearray = bytearray()
+
+        # Continue to try to decode until there is an EOF symbol, and add a timeout once the next bit index has gone
+        # over all the bits, plus the number of bits used by the bits system:
+        timeout_idx = 8 * len(encoded_bytes) + self.interval_iterator.current_interval.system.BITS_USED
+        while self.next_bit_idx < timeout_idx:
+            # Get the current symbol:
+            current_symbol = self.ppm_chain.get_symbol(self.value, self.interval_iterator.current_interval, self.history)
+            if current_symbol is None:
+                return None
+            elif current_symbol == 256:  # EOF symbol, not valid bytes value
+                break
+            else:
+                decoded.append(current_symbol)
+
+            # Update the interval like the encoder:
+            prob_interval = self.ppm_chain.get_prob_interval(current_symbol, self.history)
+            self.add_to_history(current_symbol)
+            self.interval_iterator.process_prob_interval(prob_interval)
+
+        # Convert the array to bytes:
+        return bytes(decoded)
 
 
 class ArithmeticCompressor(Compressor):
