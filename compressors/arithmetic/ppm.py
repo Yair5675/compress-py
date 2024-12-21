@@ -125,7 +125,7 @@ class PPMModelChain:
         # Go from the highest order possible to the lowest:
         for model_order in range(min(self.max_order, len(history)), -1, -1):
             # Create the context:
-            current_context: Context = Context(history[-model_order:])
+            current_context: Context = Context(history[-model_order:]) if model_order != 0 else Context(())
 
             # Try to get the probability interval:
             current_model: PPMModel = self.__models[model_order]
@@ -160,9 +160,9 @@ class PPMModelChain:
                  models), None will be returned.
         """
         # Go from the highest order possible to the lowest:
-        for model_order in range(min(self.max_order, len(history), -1, -1)):
+        for model_order in range(min(self.max_order, len(history)), -1, -1):
             # Create the context:
-            current_context: Context = Context(history[-model_order:])
+            current_context: Context = Context(history[-model_order:]) if model_order != 0 else Context(())
 
             # Calculate cumulative frequency for this model:
             current_table: MutableFrequencyTable = self.__models[model_order].tables[current_context]
