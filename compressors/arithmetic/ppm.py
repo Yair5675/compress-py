@@ -123,7 +123,7 @@ class PPMModelChain:
         :return: The probability interval currently associated with the symbol, given this history.
         """
         # Go from the highest order possible to the lowest:
-        for model_order in range(min(self.max_order, len(history), -1, -1)):
+        for model_order in range(min(self.max_order, len(history)), -1, -1):
             # Create the context:
             current_context: Context = Context(history[-model_order:])
 
