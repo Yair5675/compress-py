@@ -85,6 +85,25 @@ class Decoder(StateCallback):
         # Signal the caller to call the callback again on the new interval:
         return True
 
+    def init_value(self, compressed_bytes: bytes) -> None:
+        """
+        Inserts the first bits of `compressed_bytes` into `self.value`.
+        :param compressed_bytes: The data the Decoder will compress. Its first bits will be loaded into the object to
+                                 begin decompression.
+        """
+        # Initialize value:
+        self.value = 0
+
+        # Calculate how many bits we can get from the compressed data:
+        system: BitsSystem = self.interval_iterator.current_interval.system
+        input_bits_len = min(8 * len(compressed_bytes), system.BITS_USED)
+        for i in range(input_bits_len):
+            self.value = (self.value << 1) | util.get_bit(compressed_bytes, i)
+
+        # Shift additional zeroes if needed:
+        remaining = max(0, system.BITS_USED - input_bits_len)
+        self.value <<= remaining
+
     def __call__(self, encoded_bytes: bytes) -> Optional[bytes]:
         """
         Decodes a sequence of bytes representing an encoding of data using the Encoder class.
@@ -94,6 +113,9 @@ class Decoder(StateCallback):
         """
         # Save the encoded bytes and reset the next-bit-idx:
         self.encoded_bytes, self.next_bit_idx = encoded_bytes, 0
+
+        # Initialize the value:
+        self.init_value(encoded_bytes)
 
         # Use a bytearray to efficiently concatenate the decoded bytes:
         decoded: bytearray = bytearray()
