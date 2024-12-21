@@ -8,17 +8,33 @@ class Interval:
     """
     __slots__ = (
         # Starting point of the interval, between 0 and 1:
-        'low',
+        '__low',
         # The width of the interval, between 0 and 1:
-        'width',
+        '__width',
         # The bits system used in the `low` and `width` values:
         'system'
     )
 
     def __init__(self, low: int, width: int, system: bits_system.BitsSystem) -> 'Interval':
+        self.system: bits_system.BitsSystem = system
         self.low: int = low
         self.width: int = width
-        self.system: bits_system.BitsSystem = system
+
+    @property
+    def low(self) -> int:
+        return self.__low
+
+    @low.setter
+    def low(self, value) -> None:
+        self.__low: int = value & self.system.MAX_CODE
+
+    @property
+    def width(self) -> int:
+        return self.__width
+
+    @width.setter
+    def width(self, value):
+        self.__width: int = value & self.system.MAX_CODE
 
     @property
     def high(self):
