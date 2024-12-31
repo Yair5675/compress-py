@@ -68,6 +68,9 @@ class Interval:
         else:
             return IntervalState.NON_CONVERGING
 
+    def __repr__(self):
+        return f"[{self.low}, {self.high})"
+
 
 class IntervalState(Enum):
     """
