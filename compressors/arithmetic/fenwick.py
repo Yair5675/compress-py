@@ -49,3 +49,6 @@ class FenwickTree:
         while 0 < shifted_idx < len(self.__data):
             self.__data[shifted_idx] += amount
             shifted_idx += shifted_idx & -shifted_idx  # This line flips the least significant set bit
+
+    def __repr__(self):
+        return repr([self.get_sum(i) for i in range(1, len(self.__data))])
