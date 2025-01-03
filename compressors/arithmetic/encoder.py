@@ -104,12 +104,15 @@ class Encoder(StateCallback):
         :param value: A value that will be encoded using arithmetic coding. The value must be in the range [0, 256],
                       where [0, 256) represents all byte values, and 256 represents EOF.
         """
-        # Get the probability interval of the value and update the PPM model chain:
-        prob_interval: ProbabilityInterval = self.ppm_chain.get_prob_interval(value, tuple(self.history))
-        self.add_to_history(value)
+        # Get the probability intervals required to encode the value and update the PPM model chain:
+        prob_intervals: list[ProbabilityInterval] = self.ppm_chain.get_prob_interval(value, tuple(self.history))
 
-        # Use the iterator with this interval:
-        self.interval_iterator.process_prob_interval(prob_interval)
+        # Use the iterator with those intervals:
+        for prob_interval in prob_intervals:
+            self.interval_iterator.process_prob_interval(prob_interval)
+
+        # Add the symbol to the history:
+        self.add_to_history(value)
 
     def get_encoded(self) -> bytes:
         """
