@@ -172,12 +172,15 @@ class PPMModelChain:
             current_table: MutableFrequencyTable = self.__models[model_order].tables[current_context]
             cum_freq: int = PPMModelChain.__calc_cum_freq(value, current_interval, current_table)
 
-            # If the cumulative frequency is between 0 and the model's total frequencies value, calculate and return
-            # the symbol:
-            if 0 <= cum_freq < current_table.get_total_frequencies():
-                return current_table.get_symbol(cum_freq)
+            # Check that the cumulative frequency is within the correct range:
+            if 0 > cum_freq or cum_freq > current_table.get_total_frequencies():
+                return None
 
-        # If all models were searched and didn't find a symbol, try the fallback model:
+            # Check if the calculate symbol is an escape symbol, and go to the lower model if it is:
+            if (symbol := current_table.get_symbol(cum_freq)) != 256:
+                return symbol
+
+        # If all models were searched and didn't find a symbol, try the fallback model (here 256 means EOF):
         return self.__fallback_model.get_symbol(
             PPMModelChain.__calc_cum_freq(value, current_interval, self.__fallback_model)
         )
