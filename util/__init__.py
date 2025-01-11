@@ -1,3 +1,7 @@
+import typer
+from pathlib import Path
+
+
 def get_bit(b: bytes, offset: int) -> int:
     """
     Extracts a single bit from the bytes object.
@@ -32,3 +36,28 @@ def read_bits(bitstream: bytes, offset: int, bits_num: int) -> int:
         result = ((result << 1) | current_bit) & 0xFFFFFFFF
 
     return result
+
+
+def validate_file_paths(compressed_file_extension: str, input_path: Path, output_path: Path, is_compressing: bool) -> None:
+    """
+    Validates the input and output paths.
+    More precisely, ensures the following conditions are met:
+        - The file extension of the input path (in case of decompression) or output path (in case of compression) ends
+          with the given 'compressed_file_extension' parameter.
+        - The input path and output path are not pointing to the same file.
+    :param compressed_file_extension: The file extension that files which were compressed by an algorithm should end in.
+    :param input_path: The path of the given input file.
+    :param output_path: The path of the given output file.
+    :param is_compressing: Whether the input file is going to be compressed (True) or decompressed (False).
+    :raises typer.BadParameter: If one of the condition above isn't met.
+    """
+    # Check file extension:
+    path_to_check = output_path if is_compressing else input_path
+    if path_to_check.suffix != compressed_file_extension:
+        raise typer.BadParameter(
+            f"{"Output" if is_compressing else "Input"} file must have the file extension '{compressed_file_extension}'"
+        )
+
+    # Check that the input file isn't the output file:
+    if input_path == output_path:
+        raise typer.BadParameter("Input file and output file cannot be the same")
