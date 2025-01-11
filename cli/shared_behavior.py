@@ -1,10 +1,9 @@
 import rich
 import typer
 from pathlib import Path
-from rich.table import Table
 from compressors import Compressor
+from cli.benchmark import CompressorBenchmark
 from rich.progress import SpinnerColumn, Progress, TextColumn
-from cli.benchmark import BenchmarkResults, CompressorBenchmark
 
 
 def validate_file_paths(compressed_file_extension: str, input_path: Path, output_path: Path, is_compressing: bool) -> None:
@@ -30,41 +29,6 @@ def validate_file_paths(compressed_file_extension: str, input_path: Path, output
     # Check that the input file isn't the output file:
     if input_path == output_path:
         raise typer.BadParameter("Input file and output file cannot be the same")
-
-
-def get_benchmark_table(benchmark_results: BenchmarkResults) -> Table:
-    """
-    Given the results of out benchmark, the function prints them in a nice table.
-    :param benchmark_results: The results of the benchmark.
-    """
-    # Check for compression data:
-    is_compressing = benchmark_results.compression_ratio is not None
-
-    # Create columns for the main table:
-    main_table = Table(title='Benchmark Results', style="bold blue", title_style="bold white")
-    main_table.add_column('Total Time (s)')
-    main_table.add_column('Memory Usage (MiB)')
-    if is_compressing:
-        main_table.add_column('Compression Ratio')
-        main_table.add_column('Space Saving')
-
-    # Add memory sub-table:
-    memory_table = Table(show_edge=False, show_lines=False)
-    memory_table.add_column('Min')
-    memory_table.add_column('Avg')
-    memory_table.add_column('Max')
-
-    # Add the actual data:
-    memory_data = f"{benchmark_results.min_mem:.2f}", f"{benchmark_results.avg_mem:.2f}", f"{benchmark_results.max_mem:.2f}"
-    memory_table.add_row(*memory_data)
-
-    row = [f"{benchmark_results.runtime_results.cumtime:.4f}", memory_table]
-    if is_compressing:
-        # Show space-saving as percentage:
-        row += [f"{benchmark_results.compression_ratio:.2f}", f"{(100 * benchmark_results.space_saving):.2f} %"]
-    main_table.add_row(*row)
-
-    return main_table
 
 
 def execute_compressor(
@@ -106,7 +70,7 @@ def execute_compressor(
             # Benchmark and print results:
             compressor_benchmark = CompressorBenchmark(compressor)
             output_data, benchmark_results = compressor_benchmark(input_data, is_compressing)
-            table = get_benchmark_table(benchmark_results)
+            table = benchmark_results.get_benchmark_table()
             rich.print(table)
         else:
             output_data: bytes = compressor.encode(input_data) if is_compressing else compressor.decode(input_data)

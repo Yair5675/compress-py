@@ -1,5 +1,6 @@
 import pstats
 from typing import Optional
+from rich.table import Table
 from cProfile import Profile
 from functools import partial
 from dataclasses import dataclass
@@ -62,6 +63,39 @@ class BenchmarkResults:
         if data_size is not None and data_size[0] > 0 and data_size[1] > 0:
             self.compression_ratio = data_size[0] / data_size[1]  # Uncompressed / compressed
             self.space_saving = 1 - (data_size[1] / data_size[0])  # 1 - (compressed / uncompressed)
+
+    def get_benchmark_table(self) -> Table:
+        """
+        Given the results of out benchmark, the function returns them in a nice table.
+        """
+        # Check for compression data:
+        is_compressing = self.compression_ratio is not None
+
+        # Create columns for the main table:
+        main_table = Table(title='Benchmark Results', style="bold blue", title_style="bold white")
+        main_table.add_column('Total Time (s)')
+        main_table.add_column('Memory Usage (MiB)')
+        if is_compressing:
+            main_table.add_column('Compression Ratio')
+            main_table.add_column('Space Saving')
+
+        # Add memory sub-table:
+        memory_table = Table(show_edge=False, show_lines=False)
+        memory_table.add_column('Min')
+        memory_table.add_column('Avg')
+        memory_table.add_column('Max')
+
+        # Add the actual data:
+        memory_data = f"{self.min_mem:.2f}", f"{self.avg_mem:.2f}", f"{self.max_mem:.2f}"
+        memory_table.add_row(*memory_data)
+
+        row = [f"{self.runtime_results.cumtime:.4f}", memory_table]
+        if is_compressing:
+            # Show space-saving as percentage:
+            row += [f"{self.compression_ratio:.2f}", f"{(100 * self.space_saving):.2f} %"]
+        main_table.add_row(*row)
+
+        return main_table
 
 
 class CompressorBenchmark:
