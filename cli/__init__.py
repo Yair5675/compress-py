@@ -3,6 +3,7 @@ import cli.rle
 import cli.lzw
 import cli.huffman
 from typing import Optional
+from cli.comparisons import compare_all
 
 # The name of the app:
 APP_NAME = "compress-py"
@@ -41,6 +42,9 @@ class CliApp:
         # Initialize the compress and decompress apps:
         self.__init_comp()
         self.__init_decomp()
+
+        # Add the compare-all command:
+        self.__main_app.command(no_args_is_help=True)(compare_all)
 
         # Add them to the main app:
         self.__main_app.add_typer(self.__comp_app)
