@@ -39,7 +39,12 @@ def get_info_table(results: tuple[BenchmarkResults]) -> Table:
     info_table.add_column('Space Saving')
     
     for i, result in enumerate(results):
-        data = compressors_to_test[i][0], f"{result.runtime_results.cumtime:.4f}", f"{result.avg_mem:.2f}", f"{result.compression_ratio:.2f}", f"{(100 * result.space_saving):.2f} %"
+        data = [compressors_to_test[i][0], f"{result.runtime_results.cumtime:.4f}", f"{result.avg_mem:.2f}"]
+
+        # Color compression efficiency:
+        compression_color = "green" if result.space_saving > 0.2 else "yellow" if result.space_saving >= 0 else "red"
+        data += [f"[{compression_color}]{result.compression_ratio:.2f}[/{compression_color}]",
+                 f"[{compression_color}]{(100 * result.space_saving):.2f} %[/{compression_color}]"]
         info_table.add_row(*data)
     return info_table
 
