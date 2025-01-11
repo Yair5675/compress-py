@@ -40,7 +40,7 @@ def execute_compressor(
             transient=True
     ) as progress:
         # Compress or decompress the file:
-        progress.add_task(description=f"{"Encoding" if is_compressing else "Decoding"} data...", total=None)
+        progress.add_task(description=f"{'Encoding' if is_compressing else 'Decoding'} data...", total=None)
         if benchmark:
             # Benchmark and print results:
             compressor_benchmark = CompressorBenchmark(compressor)

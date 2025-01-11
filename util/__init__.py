@@ -55,7 +55,7 @@ def validate_file_paths(compressed_file_extension: str, input_path: Path, output
     path_to_check = output_path if is_compressing else input_path
     if path_to_check.suffix != compressed_file_extension:
         raise typer.BadParameter(
-            f"{"Output" if is_compressing else "Input"} file must have the file extension '{compressed_file_extension}'"
+            f"{'Output' if is_compressing else 'Input'} file must have the file extension '{compressed_file_extension}'"
         )
 
     # Check that the input file isn't the output file:
