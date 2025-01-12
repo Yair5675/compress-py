@@ -62,7 +62,7 @@ def compare_all(input_path: Annotated[Path, typer.Argument(
     Pay attention this command only compares the algorithms on the file, and does not produce an output file.
     """
     # Benchmark all algorithms:
-    with ProcessPoolExecutor(max_workers=4) as executor:
+    with ProcessPoolExecutor() as executor:
         results: tuple[BenchmarkResults] = tuple(executor.map(
             functools.partial(test_with, input_path), range(len(compressors_to_test))
         ))
