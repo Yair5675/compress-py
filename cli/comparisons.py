@@ -30,6 +30,20 @@ def test_with(input_path: Path, test_idx: int) -> BenchmarkResults:
     return results[1]
 
 
+def get_compression_color(space_saving: float) -> str:
+    spectrum: tuple[tuple[float, str], ...] = (
+        (0.4, "bright_green"),
+        (0.15, "green"),
+        (0., "yellow"),
+        (float('-inf'), 'bright_red')
+    )
+    for start_point, color in spectrum:
+        if space_saving >= start_point:
+            return color
+
+    return "white"  # Shouldn't ever reach this point
+
+
 def get_info_table(results: tuple[BenchmarkResults]) -> Table:
     info_table: Table = Table(
         title="Combined Benchmark Results", style="bold blue", title_style="bold white", box=box.ROUNDED,
@@ -45,7 +59,7 @@ def get_info_table(results: tuple[BenchmarkResults]) -> Table:
         data = [compressors_to_test[i][0], f"{result.runtime_results.cumtime:.4f}", f"{result.avg_mem:.2f}"]
 
         # Color compression efficiency:
-        compression_color = "green" if result.space_saving > 0.2 else "yellow" if result.space_saving >= 0 else "red"
+        compression_color = get_compression_color(result.space_saving)
         data += [f"[{compression_color}]{result.compression_ratio:.2f}[/{compression_color}]",
                  f"[{compression_color}]{(100 * result.space_saving):.2f} %[/{compression_color}]"]
         info_table.add_row(*data)
