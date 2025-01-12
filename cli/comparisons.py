@@ -1,4 +1,3 @@
-import time
 import rich
 import typer
 import cli.lzw
@@ -63,13 +62,10 @@ def compare_all(input_path: Annotated[Path, typer.Argument(
     Pay attention this command only compares the algorithms on the file, and does not produce an output file.
     """
     # Benchmark all algorithms:
-    start = time.perf_counter()
     with ProcessPoolExecutor(max_workers=4) as executor:
         results: tuple[BenchmarkResults] = tuple(executor.map(
             functools.partial(test_with, input_path), range(len(compressors_to_test))
         ))
-    end = time.perf_counter()
-    print(end - start)
     # Create a big table for all the algorithms:
     info_table = get_info_table(results)
     rich.print(info_table)
