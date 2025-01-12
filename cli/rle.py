@@ -56,7 +56,7 @@ def decompress(input_path: Annotated[Path, typer.Argument(
     # Initialize and execute the compressor:
     compressor = RleCompressor()
     try:
-        execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark)
+        execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark)
     # Be careful of ValueError in case invalid data was given:
     except ValueError:
         rich.print("[bold red]Invalid RLE compressed data[/bold red]")
