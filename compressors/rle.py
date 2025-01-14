@@ -21,7 +21,7 @@ class RleCompressor(Compressor):
         current_byte, repetitions = input_data[0], 1
 
         for byte_val in input_data[1:]:
-            if current_byte != byte_val:
+            if current_byte != byte_val or repetitions == 255:
                 # Insert the byte value and the repetitions count:
                 buffer.insert_bits(current_byte, 8)
                 buffer.insert_bits(repetitions, 8)
