@@ -18,7 +18,7 @@ class RleCompressor(Compressor):
 
         # Initialize the buffer:
         buffer: BitBuffer = BitBuffer()
-        current_byte, repetitions = input_data[0], 1
+        current_byte, repetitions = input_data[0], 0  # Number of repetitions is at least 1, so start with 0 and add 1 later during decoding
 
         for byte_val in input_data[1:]:
             if current_byte != byte_val or repetitions == 255:
@@ -27,7 +27,7 @@ class RleCompressor(Compressor):
                 buffer.insert_bits(repetitions, 8)
 
                 # Initialize byte and repetitions:
-                current_byte, repetitions = byte_val, 1
+                current_byte, repetitions = byte_val, 0
             else:
                 repetitions += 1
 
@@ -55,7 +55,7 @@ class RleCompressor(Compressor):
 
         # Decode the data:
         for i in range(0, len(compressed_data), 2):
-            byte_val, repetitions = compressed_data[i], compressed_data[i + 1]
+            byte_val, repetitions = compressed_data[i], compressed_data[i + 1] + 1
             for _ in range(repetitions):
                 buffer.insert_bits(byte_val, 8)
 
