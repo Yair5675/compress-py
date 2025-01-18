@@ -34,6 +34,7 @@ def load_insertions(insertions: list[int]) -> BitBuffer:
     ([0b101010, 6], '101010'),
     ([0b1010, 4, 0b1100, 4], '10101100'),
     ([0b11111111, 8, 0b11111111, 8, 0b1, 2], '111111111111111101'),
+    ([(1 << BitBuffer.BITS_PER_INT) - 1, BitBuffer.BITS_PER_INT, 0b01, 2], f"{"1" * BitBuffer.BITS_PER_INT}01")
 
 ], ids=[
     "len(bits_container) > bits_num",
@@ -43,6 +44,7 @@ def load_insertions(insertions: list[int]) -> BitBuffer:
     "Insert 6 bits 101010",
     "Insert 4 bits 1010 then 4 bits 1100",
     "Insert 8 bits 11111111 then 8 bits 11111111 then 2 bits 01",
+    f"Insert full integer ({BitBuffer.BITS_PER_INT} bits) and then 2 bits 01"
 ])
 def test_insert_bits(insertions, expected_value: str):
     buffer = load_insertions(insertions)
