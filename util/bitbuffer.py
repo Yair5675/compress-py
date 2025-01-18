@@ -1,5 +1,6 @@
 import math
 from collections import deque
+from collections.abc import Iterable
 
 
 class BitBuffer:
@@ -131,3 +132,27 @@ class BitBuffer:
             raise ValueError(f"Byte index must be in the range [0, 4) (got {byte_idx})")
 
         return integer >> (8 * (3 - byte_idx)) & 0xFF
+
+    @staticmethod
+    def concatenate(buffers: Iterable['BitBuffer']) -> 'BitBuffer':
+        """
+        Given an iterable of BitBuffer objects, the function concatenates the bits saved in them and returns them in a
+        single BitBuffer object.
+        The order of the bits is preserved, according to the order of the buffers in the given iterable.
+        This function does NOT mutate the given buffers.
+        :param buffers: An iterable of buffers whose contents will be concatenated.
+        :return: A BitBuffer object containing all bits saved in the given buffers.
+        """
+        # Initialize output buffer:
+        output = BitBuffer()
+
+        for buffer in buffers:
+            # Insert every saved integer:
+            for saved_int in buffer.__saved_data:
+                output.insert_bits(saved_int, BitBuffer.BITS_PER_INT)
+            # Insert the current integer (if it's not loaded, the buffer's bit_idx will be 0, and nothing will be
+            # inserted):
+            unused_bits = BitBuffer.BITS_PER_INT - buffer.__bit_idx
+            output.insert_bits(buffer.__current_int >> unused_bits, buffer.__bit_idx)
+
+        return output

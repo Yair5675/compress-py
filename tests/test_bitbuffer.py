@@ -91,3 +91,24 @@ def test_len(insertions, expected_length):
 def test_bytes(insertions, expected_bytes):
     buffer = load_insertions(insertions)
     assert bytes(buffer) == expected_bytes
+
+
+@pytest.mark.parametrize(
+    "buffers, expected_value",
+    [
+        # Concatenating buffers with different sizes and bit patterns
+        ([([0b101010, 6], [0b110011, 6]), '101010110011']),  # Simple concatenation of two buffers
+        ([([0b1111, 4], [0b0000, 4]), '11110000']),  # Concatenating two buffers with 4 bits each
+        ([([0b111, 3], [0b110, 3]), '111110']),  # Concatenating two buffers with 3 bits each
+        ([([0b101010, 6], [0b1111, 4], [0b110, 3]), '1010101111110'])  # Concatenating three buffers
+    ], ids=[
+        "Concatenate two 6-bit buffers",
+        "Concatenate two 4-bit buffers",
+        "Concatenate two 3-bit buffers",
+        "Concatenate three buffers of different sizes",
+    ]
+)
+def test_concatenate(buffers, expected_value):
+    buffers = [load_insertions(insertions) for insertions in buffers]
+    concatenated_buffer = BitBuffer.concatenate(buffers)
+    assert str(concatenated_buffer) == expected_value
