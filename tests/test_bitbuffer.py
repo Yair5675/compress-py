@@ -28,13 +28,18 @@ def load_insertions(insertions: list[int]) -> BitBuffer:
     # Container "has fewer bits" than requested (zeroes should be put instead):
     ([0b111, 6], "000111"),
 
+    # Trying to insert 0 bits:
+    ([0b101010, 0], ""),
+
     ([0b101010, 6], '101010'),
     ([0b1010, 4, 0b1100, 4], '10101100'),
     ([0b11111111, 8, 0b11111111, 8, 0b1, 2], '111111111111111101'),
+
 ], ids=[
     "len(bits_container) > bits_num",
     "Over 32 bits",
     "len(bits_container) < bits_num",
+    "Inserting 0 bits",
     "Insert 6 bits 101010",
     "Insert 4 bits 1010 then 4 bits 1100",
     "Insert 8 bits 11111111 then 8 bits 11111111 then 2 bits 01",
