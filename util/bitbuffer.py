@@ -1,14 +1,17 @@
+import math
 from collections import deque
-
-# In order to enforce the assumption that all integers have 32 bits, 'and' every left-shift result with this mask to
-# receive the first 32 bits only:
-FULL_INT_MASK = 0xFFFFFFFF
 
 
 class BitBuffer:
     """
     A utility class that makes handling bits (and not bytes) easy.
     """
+    # The maximum number of bits each integer in the saved_data deque will have:
+    BITS_PER_INT: int = 32
+
+    # A mask used to extract only the first 'BITS_PER_INT' bits in a number:
+    FULL_INT_MASK: int = (1 << BITS_PER_INT) - 1
+
     __slots__ = [
         # Since the buffer is designed to hold lots of bits, we'll hold them as a deque of integers (a deque allows us
         # to store data non-consecutively, and the integer type allows easy bit manipulation):
@@ -18,8 +21,8 @@ class BitBuffer:
         '__current_int',
 
         # The index of the bit in 'current_int' that will be written to in the next method call. Notice that it
-        # points to the bit that you get if you call `(current_int >> (31 - bit_idx)) & 1`. This is done in order to
-        # preserve the order of bit insertions:
+        # points to the bit that you get if you call `(current_int >> (BITS_PER_INT - 1 - bit_idx)) & 1`. This is done
+        # in order to preserve the order of bit insertions:
         '__bit_idx'
     ]
 
@@ -45,16 +48,15 @@ class BitBuffer:
         :param bits_num: The number of bits to extract from the integer. If this number is larger than needed to
                          represent the number saved in `bits_container`, zeroes will be appended to the start of the
                          number (because adding zeroes to the start doesn't change the value of the number).
-
         :return: The current BitBuffer object, in order to support the builder pattern.
         """
         # Extract the necessary bits only:
         bits_container &= (1 << bits_num) - 1
 
         # Insert as many bits as possible into the current integer:
-        free_bits = 32 - self.__bit_idx
+        free_bits = BitBuffer.BITS_PER_INT - self.__bit_idx
         if free_bits > bits_num:
-            self.__current_int |= (bits_container << (free_bits - bits_num)) & FULL_INT_MASK
+            self.__current_int |= (bits_container << (free_bits - bits_num)) & BitBuffer.FULL_INT_MASK
             self.__bit_idx += bits_num
         else:
             # Insert what you can into the current integer:
@@ -80,7 +82,7 @@ class BitBuffer:
         Calculates and returns the number of bits held in the buffer.
         :return: The number of bits held in the buffer.
         """
-        return 32 * len(self.__saved_data) + self.__bit_idx
+        return BitBuffer.BITS_PER_INT * len(self.__saved_data) + self.__bit_idx
 
     def __bytes__(self):
         """
@@ -89,8 +91,8 @@ class BitBuffer:
         :return: A bytes object containing the bits in the object.
         """
         # Calculate the amount of bytes needed beforehand:
-        saved_ints_bytes_count = 4 * len(self.__saved_data)
-        current_int_bytes_count = (self.__bit_idx + 7) // 8
+        saved_ints_bytes_count = math.ceil(BitBuffer.BITS_PER_INT / 8) * len(self.__saved_data)
+        current_int_bytes_count = math.ceil(self.__bit_idx / 8)
         bytes_needed = saved_ints_bytes_count + current_int_bytes_count
 
         # Create a bytearray with this size:
@@ -109,7 +111,10 @@ class BitBuffer:
         return bytes(stored_bits)
 
     def __repr__(self) -> str:
-        return "".join(bin(num)[2:].zfill(32) for num in self.__saved_data) + bin(self.__current_int)[2:].zfill(32)[:self.__bit_idx]
+        return (
+                "".join(bin(num)[2:].zfill(BitBuffer.BITS_PER_INT) for num in self.__saved_data) +  # saved_data
+                bin(self.__current_int)[2:].zfill(BitBuffer.BITS_PER_INT)[:self.__bit_idx]  # current int
+        )
 
     @staticmethod
     def __get_byte_from_int(integer: int, byte_idx: int) -> int:
