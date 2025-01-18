@@ -42,7 +42,10 @@ class BitBuffer:
                                >>> buffer = BitBuffer()
                                >>> buffer.insert_bits(bits_container=0b101010, bits_num=5)
                                >>> # Buffer now contains the bits "01010", in that order (left to right)
-        :param bits_num: The number of bits to extract from the integer. Must be in range(1, 33).
+        :param bits_num: The number of bits to extract from the integer. If this number is larger than needed to
+                         represent the number saved in `bits_container`, zeroes will be appended to the start of the
+                         number (because adding zeroes to the start doesn't change the value of the number).
+
         :return: The current BitBuffer object, in order to support the builder pattern.
         """
         # Extract the necessary bits only:
@@ -57,11 +60,10 @@ class BitBuffer:
             # Insert what you can into the current integer:
             next_int_bits_count = bits_num - free_bits
             self.__current_int |= bits_container >> next_int_bits_count
-
-            # Save the current integer and add the remaining bits to the next one:
             self.__save_current_int()
-            self.__current_int = (bits_container << (32 - next_int_bits_count)) & FULL_INT_MASK
-            self.__bit_idx = bits_num - free_bits
+
+            # Call the method again with the remaining bits:
+            self.insert_bits(bits_container, next_int_bits_count)
 
         return self
 
