@@ -3,7 +3,7 @@ from collections import deque
 from queue import PriorityQueue
 from util.bitbuffer import BitBuffer
 from typing import Optional, Sequence
-from compressors.huffman.identifiers import HuffmanEncoding
+from compressors.huffman.encodings import HuffmanEncoding
 
 
 class InvalidTreeFormat(Exception):

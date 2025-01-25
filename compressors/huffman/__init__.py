@@ -2,8 +2,8 @@ import util
 from .tree import HuffmanTree
 from collections import Counter
 from compressors import Compressor
-import compressors.huffman.identifiers
 from util.bitbuffer import BitBuffer
+from compressors.huffman.encodings import HuffmanEncoding
 
 
 class HuffmanCompressor(Compressor):
@@ -24,14 +24,14 @@ class HuffmanCompressor(Compressor):
 
         # Create the huffman tree and produce encodings from it:
         huffman_tree = HuffmanTree(frequencies)
-        encoded_bytes: dict[bytes, identifiers.HuffmanEncoding] = huffman_tree.get_encodings()
+        encoded_bytes: dict[bytes, HuffmanEncoding] = huffman_tree.get_encodings()
 
         # Create a buffer that will store the compressed bits of the tree and the rest of the data:
         bit_buffer: BitBuffer = huffman_tree.to_bits()
 
         # Replace byte values with their huffman encoding:
         for byte_val in input_data:
-            encoding: identifiers.HuffmanEncoding = encoded_bytes[bytes([byte_val])]
+            encoding: HuffmanEncoding = encoded_bytes[bytes([byte_val])]
             encoding.load_to_buffer(bit_buffer)
 
         # Since the compressed data's bit count may not be divisible by 8, zeroes will be added to its end. This could
@@ -71,7 +71,7 @@ class HuffmanCompressor(Compressor):
 
         # Initialize a bit buffer and a variable holding the current encoded part:
         buffer: BitBuffer = BitBuffer()
-        encoded_key: identifiers.HuffmanEncoding = identifiers.HuffmanEncoding(0, 0)
+        encoded_key: HuffmanEncoding = HuffmanEncoding(0, 0)
         offset: int = data_start_idx
 
         # Go over the bits. We skip the last byte that contains the padding length (the -1 in the parenthesis), and skip
