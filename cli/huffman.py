@@ -1,8 +1,11 @@
+import sys
+import rich
 import typer
 from pathlib import Path
 import cli.shared_behavior
 from typing_extensions import Annotated
 from compressors.huffman import HuffmanCompressor
+from compressors.huffman.tree import InvalidTreeFormat
 
 # The file extension given to files compressed using the HuffmanCompressor:
 HUFFMAN_FILE_EXTENSION = '.huff'
@@ -53,6 +56,10 @@ def decompress(input_path: Annotated[Path, typer.Argument(
     Decompresses a file that was compressed using the program's [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman Coding[/link] implementation.
     The command will only work on this program's implementation of Huffman coding, and will exit unsuccessfully if a file with invalid format will be given to it.
     """
-    cli.shared_behavior.execute_compressor(
-        HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark
-    )
+    try:
+        cli.shared_behavior.execute_compressor(
+            HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark
+        )
+    except InvalidTreeFormat:
+        rich.print("[bold red]Malformed/invalid data given - cannot complete decompression[/bold red]", file=sys.stderr)
+        typer.Exit(1)
