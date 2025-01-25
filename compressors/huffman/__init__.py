@@ -22,12 +22,12 @@ class HuffmanCompressor(Compressor):
         frequencies: Counter = Counter(input_data)
         frequencies: list[int] = [frequencies[i] for i in range(256)]
 
-        # Create the huffman tree and produce identifiers from it:
+        # Create the huffman tree and produce encodings from it:
         huffman_tree = HuffmanTree(frequencies)
         encoded_bytes: dict[bytes, identifiers.HuffmanEncoding] = huffman_tree.get_encodings()
 
-        # Create a buffer that will store the compressed bits:
-        bit_buffer: BitBuffer = identifiers.turn_identifiers_into_bits(encoded_bytes)
+        # Create a buffer that will store the compressed bits of the tree and the rest of the data:
+        bit_buffer: BitBuffer = huffman_tree.to_bits()
 
         # Replace byte values with their huffman encoding:
         for byte_val in input_data:
@@ -60,7 +60,11 @@ class HuffmanCompressor(Compressor):
             return bytes()
 
         # Get encodings from the start of the data:
-        encodings, data_start_idx = identifiers.get_identifiers_from_bytes(compressed_data)
+        huffman_tree, data_start_idx = HuffmanTree.from_bits(compressed_data)
+        encodings = huffman_tree.get_encodings()
+
+        # Make the encodings the keys in the dictionary and the original bytes the values:
+        encodings = {encoding: byte for byte, encoding in encodings.items()}
 
         # Get the amount of padding added to the end of the compressed data:
         padding_length = compressed_data[-1]
