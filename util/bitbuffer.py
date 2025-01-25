@@ -116,6 +116,17 @@ class BitBuffer:
                 "".join(bin(num)[2:].zfill(BitBuffer.BITS_PER_INT) for num in self.__saved_data) +  # saved_data
                 bin(self.__current_int)[2:].zfill(BitBuffer.BITS_PER_INT)[:self.__bit_idx]  # current int
         )
+    
+    def __eq__(self, other: 'BitBuffer'):
+        if other is None:
+            return False
+        elif self is other:
+            return True
+        elif not isinstance(other, BitBuffer):
+            return False
+        else:
+            return (self.__bit_idx == other.__bit_idx and self.__current_int == other.__current_int and
+                    self.__saved_data == other.__saved_data)
 
     @staticmethod
     def __get_byte_from_int(integer: int, byte_idx: int) -> int:
