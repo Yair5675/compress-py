@@ -44,7 +44,7 @@ def get_compression_color(space_saving: float) -> str:
     return "white"  # Shouldn't ever reach this point
 
 
-def get_info_table(results: tuple[BenchmarkResults]) -> Table:
+def get_info_table(results: tuple[tuple[str, BenchmarkResults]]) -> Table:
     info_table: Table = Table(
         title="Combined Benchmark Results", style="bold blue", title_style="bold white", box=box.ROUNDED,
         show_lines=True
@@ -55,8 +55,8 @@ def get_info_table(results: tuple[BenchmarkResults]) -> Table:
     info_table.add_column('Compression Ratio')
     info_table.add_column('Space Saving')
 
-    for i, result in enumerate(results):
-        data = [compressors_to_test[i][0], f"{result.runtime_results.cumtime:.4f}", f"{result.avg_mem:.2f}"]
+    for algo_name, result in results:
+        data = [algo_name, f"{result.runtime_results.cumtime:.4f}", f"{result.avg_mem:.2f}"]
 
         # Color compression efficiency:
         compression_color = get_compression_color(result.space_saving)
@@ -80,6 +80,15 @@ def compare_all(input_path: Annotated[Path, typer.Argument(
         results: tuple[BenchmarkResults] = tuple(executor.map(
             functools.partial(test_with, input_path), range(len(compressors_to_test))
         ))
+    
+    # Add the names of the algorithm to the results:
+    results = zip((name for name, _ in compressors_to_test), results)
+    
+    # Sort them based on compression ratios:
+    results: tuple[tuple[str, BenchmarkResults]] = tuple(sorted(
+        results, key=lambda name_and_result: name_and_result[1].compression_ratio, reverse=True
+    ))
+    
     # Create a big table for all the algorithms:
     info_table = get_info_table(results)
     rich.print(info_table)
