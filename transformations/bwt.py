@@ -69,15 +69,19 @@ def compute_bwt(data: bytes) -> bytes:
         range(0, len(data), BWTBlock.MAX_BLOCK_SIZE)
     ]
 
-    # Result length is made of the following, where N is the number of blocks and D is the data's length:
-    # 1) EOFs for each block, each one byte long - N
+    # Result length calculation is as follows -
+    # Let N be the number of blocks, and D be a list where the ith element is the length of the ith block.
+    # Total length is the sum of:
+    # 1) EOFs for each block, each one byte long - N * 1 = N
     # 2) One metadata EOF - 1
-    # 3) Every block's transformation, where each transformation's length is D plus 1 internal EOF for the
-    #    block - (D + 1) * N
-    # In Total: N + 1 + N * (D + 1) = 1 + N * (D + 2)
+    # 3) Every block's transformation, where each transformation's length is D[i] plus 1 internal EOF -
+    #    D[i] + 1 for i in [0, N) = sum(D) + N
+    #    Since the sum of every block's length is equal to the length of the total data, we can use that to save 
+    #    computation.
+    # In total: N + 1 + len(data) + N = 1 + 2N + len(data)
     N = len(blocks)
-    D = len(data)
-    result: bytearray = bytearray(1 + N * (D + 2))
+    total_D = len(data)
+    result: bytearray = bytearray(1 + (N << 1) + total_D)
 
     # Insert the blocks' EOFs to the start of the array, and their BWT to the data section of the array:
     blocks_data_pointer = N + 1  # First non-metadata index
