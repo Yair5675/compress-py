@@ -2,6 +2,10 @@ from typing import Optional
 import transformations.suffix_arr as suffix_arr
 
 
+# The EOF character separating between the blocks' various EOF values and the blocks themselves:
+METADATA_EOF: int = 0
+
+
 class BWTBlock:
     __slots__ = (
         # Byte data stored in the block
@@ -37,15 +41,15 @@ class BWTBlock:
         Computes the BWT of the current block.
         """
         # Initialize a bytearray whose length is equal to the block's length:
-        result = bytearray(len(self))
+        result = bytearray(len(self) + 1)
 
         # Form the suffix array, and shrink the alphabet size to include only the block's length excluding EOF:
-        suffix_array: list[int] = suffix_arr.build_sorted_suffix_array(self.data, alphabet_size=len(self))
+        suffix_array: list[int] = suffix_arr.build_sorted_suffix_array(self.data)
 
         # Use the indices inside the suffix array to get the last value of data's rotation to that index:
         for byte_idx, sorted_suffix_offset in enumerate(suffix_array):
             if sorted_suffix_offset > 0:
-                result[byte_idx] = sorted_suffix_offset - 1
+                result[byte_idx] = self.data[sorted_suffix_offset - 1]
             else:
                 result[byte_idx] = self.eof
         return bytes(result)
