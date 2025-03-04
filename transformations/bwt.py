@@ -53,3 +53,43 @@ class BWTBlock:
             else:
                 result[byte_idx] = self.eof
         return bytes(result)
+
+
+def compute_bwt(data: bytes) -> bytes:
+    """
+    Performs the Burrows-Wheeler transform on the data. The transformation will add some metadata to successfully
+    reconstruct it later.
+    Note that the BWT isn't performed for the entire data at once, but instead on chunks of the data.
+    :param data: Some data whose BWT will be calculated.
+    :return: The Burrows-Wheeler transform of the data.
+    """
+    # Break the data into blocks:
+    blocks: list[BWTBlock] = [
+        BWTBlock(data[i:i + BWTBlock.MAX_BLOCK_SIZE], external_eof=METADATA_EOF) for i in
+        range(0, len(data), BWTBlock.MAX_BLOCK_SIZE)
+    ]
+
+    # Result length is made of the following, where N is the number of blocks and D is the data's length:
+    # 1) EOFs for each block, each one byte long - N
+    # 2) One metadata EOF - 1
+    # 3) Every block's transformation, where each transformation's length is D plus 1 internal EOF for the
+    #    block - (D + 1) * N
+    # In Total: N + 1 + N * (D + 1) = 1 + N * (D + 2)
+    N = len(blocks)
+    D = len(data)
+    result: bytearray = bytearray(1 + N * (D + 2))
+
+    # Insert the blocks' EOFs to the start of the array, and their BWT to the data section of the array:
+    blocks_data_pointer = N + 1  # First non-metadata index
+    for block_idx, block in enumerate(blocks):
+        result[block_idx] = block.eof
+
+        bwt: bytes = block.get_bwt()
+        transform_len = len(bwt)
+        result[blocks_data_pointer:blocks_data_pointer + transform_len] = bwt
+
+        blocks_data_pointer += transform_len
+
+    # Insert the metadata EOF:
+    result[N] = METADATA_EOF
+    return bytes(result)
