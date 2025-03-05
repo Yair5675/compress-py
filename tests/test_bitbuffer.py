@@ -112,3 +112,36 @@ def test_concatenate(buffers, expected_value):
     buffers = [load_insertions(insertions) for insertions in buffers]
     concatenated_buffer = BitBuffer.concatenate(buffers)
     assert str(concatenated_buffer) == expected_value
+
+
+@pytest.mark.parametrize(
+    "data, expected_len, expected_repr",
+    [
+        # Empty bytes test:
+        (b'', 0, ''),
+        # Partial integer - not enough to be saved in deque:
+        (b'\x01', 8, '00000001'),
+        # Full integer but not more:
+        (b'\xff' * (BitBuffer.BITS_PER_INT // 8), BitBuffer.BITS_PER_INT, '1' * BitBuffer.BITS_PER_INT),
+        # Full AND partial integer:
+        (b'\xff' * (BitBuffer.BITS_PER_INT // 8) + b'\x00', BitBuffer.BITS_PER_INT + 8, '1' * BitBuffer.BITS_PER_INT + 8 * '0'),
+        # 2 Full integers:
+        (b'\xff' * (BitBuffer.BITS_PER_INT // 4), 2 * BitBuffer.BITS_PER_INT, '11' * BitBuffer.BITS_PER_INT),
+    ], ids=[
+        "Empty data",
+        "Partial integer - not enough to be saved in deque",
+        "Full integer but not more",
+        "Full AND partial integer",
+        "2 Full integers"
+    ]
+)
+def test_from_bytes(data: bytes, expected_len: int, expected_repr: str):
+    # Get buffer from method:
+    buffer = BitBuffer.from_bytes(data)
+    
+    # Compare length and repr:
+    assert len(buffer) == expected_len
+    assert repr(buffer) == expected_repr
+    
+    # Convert buffer to bytes and compare with the original data:
+    assert data == bytes(buffer)

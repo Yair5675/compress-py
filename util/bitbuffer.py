@@ -167,3 +167,35 @@ class BitBuffer:
             output.insert_bits(buffer.__current_int >> unused_bits, buffer.__bit_idx)
 
         return output
+    
+    @staticmethod
+    def from_bytes(data: bytes) -> 'BitBuffer':
+        """
+        Creates a new BitBuffer with the given data already loaded inside of it.
+        Pay attention that all bits inside every byte are saved in the buffer, even if the byte starts with 0 bits.
+        :param data: Some data which will be 'wrapped' by a new BitBuffer.
+        :return: A new BitBuffer object containing the given data.
+        """
+        # Empty case:
+        if len(data) == 0:
+            return BitBuffer()
+        
+        buffer = BitBuffer()
+        current_int = 0
+        bits_count = 0
+        
+        # Set blocks in the deque:
+        for byte in data:
+            current_int = (current_int << 8) | byte
+            bits_count += 8
+            
+            if bits_count >= BitBuffer.BITS_PER_INT:
+                buffer.__saved_data.append(current_int)
+                bits_count = current_int = 0
+        
+        # Load the current int and bit_idx (align current_int's bits to start at the most significant bit):
+        buffer.__current_int = current_int << (BitBuffer.BITS_PER_INT - bits_count)
+        buffer.__bit_idx = bits_count
+        
+        return buffer
+    
