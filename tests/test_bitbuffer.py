@@ -145,3 +145,79 @@ def test_from_bytes(data: bytes, expected_len: int, expected_repr: str):
     
     # Convert buffer to bytes and compare with the original data:
     assert data == bytes(buffer)
+
+
+@pytest.mark.parametrize(
+    "data, bit_offset, expected_bit",
+    [
+        (b'\x01', 0, 0),  # Single byte, first bit is 0
+        (b'\x01', 7, 1),  # Single byte, last bit is 1
+        (b'\x43', 0, 0),  # First bit of 01000011 (should be 0)
+        (b'\x43', 1, 1),  # Second bit of 01000011 (should be 1)
+        (b'\x43', 2, 0),  # Third bit of 01000011 (should be 0)
+        (b'\x43', 3, 0),  # Fourth bit of 01000011 (should be 0)
+        (b'\x01\x00\x00\x00\x40\x00\x00\x00', 31, 0),  # 32nd bit (in first int)
+        (b'\x01\x00\x00\x00\x40\x00\x00\x00', 32, 0),  # 33rd bit (in second int)
+        (b'\x01\x00\x00\x00\x40\x00\x00\x00', 33, 1),  # 34th bit (in second int)
+    ], ids=[
+        "Single byte, first bit is 0",
+        "Single byte, last bit is 1",
+        "First bit of 01000011 (should be 0)",
+        "Second bit of 01000011 (should be 1)",
+        "Third bit of 01000011 (should be 0)",
+        "Fourth bit of 01000011 (should be 0)",
+        "Last bit in first block",
+        "First bit in second block",
+        "Second bit in second block"
+    ]
+)
+def test_getitem(data, bit_offset, expected_bit):
+    buffer = BitBuffer.from_bytes(data)
+    assert buffer[bit_offset] == expected_bit
+
+
+@pytest.mark.parametrize(
+    "data, bit_offset, expected_bit",
+    [
+        (b'\x03', -1, 1),  # Last bit using negative index
+        (b'\x03', -2, 1),  # Second last bit using negative index
+        (b'\x03', -3, 0),  # Third last bit using negative index
+        (b'\x03', -4, 0),  # Fourth last bit using negative index
+        (b'\x01\x00\x00\x00\x40\x00\x00\x01', -1, 1),  # Last bit (in second int) using negative index
+        (b'\x01\x00\x00\x00\x40\x00\x00\x00', -31, 1),  # 31st from end, second block second bit
+        (b'\x01\x00\x00\x00\x40\x00\x00\x00', -32, 0),  # 32nd from end, second block first bit
+        (b'\x01\x00\x00\x00\x40\x00\x00\x00', -33, 0),  # 33rd from end, last bit of first block
+    ], ids=[
+        "Last bit using negative index",
+        "Second last bit using negative index",
+        "Third last bit using negative index",
+        "Fourth last bit using negative index",
+        "Last bit (in second int) using negative index",
+        "31st from end, second block second bit",
+        "32nd from end, second block first bit",
+        "33rd from end, last bit of first block"
+    ]
+)
+def test_getitem_negative_index(data, bit_offset, expected_bit):
+    buffer = BitBuffer.from_bytes(data)
+    assert buffer[bit_offset] == expected_bit
+
+
+@pytest.mark.parametrize(
+    "data, bit_offset",
+    [
+        (b'\x01', 8),  # Out-of-bounds positive index
+        (b'\x01', 9),  # Out-of-bounds positive index
+        (b'\x01', 10),  # Out-of-bounds positive index
+        (b'\x01', -9),  # Out-of-bounds negative index
+    ], ids=[
+        "Offset 8 for 8 bits",
+        "Offset 9 for 8 bits",
+        "Offset 10 for 8 bits",
+        "Offset -9 for 8 bits"
+    ]
+)
+def test_getitem_out_of_bounds(data, bit_offset):
+    buffer = BitBuffer.from_bytes(data)
+    with pytest.raises(IndexError):
+        _ = buffer[bit_offset]

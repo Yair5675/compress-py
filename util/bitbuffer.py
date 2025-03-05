@@ -84,6 +84,37 @@ class BitBuffer:
         :return: The number of bits held in the buffer.
         """
         return BitBuffer.BITS_PER_INT * len(self.__saved_data) + self.__bit_idx
+    
+    def __getitem__(self, bit_offset: int) -> int:
+        """
+        Given an offset of a bit from the start of the buffer, the method returns the bit's value (1 or 0).
+        :param bit_offset: The offset of the specified bit from the start of the buffer. Must be less than the buffer's
+                           length.
+        :return: The value of the bit at offset `bit_offset`.
+        """
+        # Pre-compute length:
+        buffer_len = len(self)
+        
+        # If it's a negative offset, convert it to a positive one after making sure it isn't out of bounds:
+        if bit_offset < 0:
+            if abs(bit_offset) > buffer_len:
+                raise IndexError(f"Negative index {bit_offset} out of bounds (buffer length is {buffer_len})")
+            return self[buffer_len + bit_offset]
+        
+        # Check for offset issues:
+        if bit_offset >= buffer_len:
+            raise IndexError(f"Bit offset out of bounds (offset={bit_offset}, length={buffer_len}")
+        
+        # Check if it's inside one of the blocks in the deque:
+        block_idx = bit_offset // BitBuffer.BITS_PER_INT
+        in_deque = block_idx < len(self.__saved_data)
+        
+        # Get the bit's container:
+        container: int = self.__saved_data[block_idx] if in_deque else self.__current_int
+        container_idx = bit_offset % BitBuffer.BITS_PER_INT
+        
+        # Get the bit:
+        return (container >> (BitBuffer.BITS_PER_INT - (container_idx + 1))) & 1
 
     def __bytes__(self):
         """
