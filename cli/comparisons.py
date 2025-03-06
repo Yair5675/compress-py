@@ -63,11 +63,13 @@ def get_info_table(results: tuple[tuple[str, BenchmarkResults]]) -> Table:
     info_table.add_column('Algorithm')
     info_table.add_column('Total Time (s)')
     info_table.add_column('Average Memory Usage (MiB)')
+    info_table.add_column('Original Size (bytes)')
+    info_table.add_column('Compressed Size (bytes)')
     info_table.add_column('Compression Ratio')
     info_table.add_column('Space Saving')
 
     for algo_name, result in results:
-        data = [algo_name, f"{result.runtime_results.cumtime:.4f}", f"{result.avg_mem:.2f}"]
+        data = [algo_name, f"{result.runtime_results.cumtime:.4f}", f"{result.avg_mem:.2f}", f"{result.org_size:,}", f"{result.compressed_size:,}"]
 
         # Color compression efficiency:
         compression_color = get_compression_color(result.space_saving)

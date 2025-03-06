@@ -21,6 +21,8 @@ class BenchmarkResults:
     avg_mem: float
 
     # Results regarding compression efficiency:
+    org_size: Optional[int]
+    compressed_size: Optional[int]
     compression_ratio: Optional[float]
     space_saving: Optional[float]
 
@@ -61,8 +63,9 @@ class BenchmarkResults:
         self.compression_ratio = None
         self.space_saving = None
         if data_size is not None and data_size[0] > 0 and data_size[1] > 0:
-            self.compression_ratio = data_size[0] / data_size[1]  # Uncompressed / compressed
-            self.space_saving = 1 - (data_size[1] / data_size[0])  # 1 - (compressed / uncompressed)
+            self.org_size, self.compressed_size = data_size
+            self.compression_ratio = self.org_size / self.compressed_size
+            self.space_saving = 1 - (self.compressed_size / self.org_size)
 
     def get_benchmark_table(self) -> Table:
         """
@@ -76,6 +79,8 @@ class BenchmarkResults:
         main_table.add_column('Total Time (s)')
         main_table.add_column('Memory Usage (MiB)')
         if is_compressing:
+            main_table.add_column('Original Size (bytes)')
+            main_table.add_column('Compressed Size (bytes)')
             main_table.add_column('Compression Ratio')
             main_table.add_column('Space Saving')
 
@@ -91,8 +96,7 @@ class BenchmarkResults:
 
         row = [f"{self.runtime_results.cumtime:.4f}", memory_table]
         if is_compressing:
-            # Show space-saving as percentage:
-            row += [f"{self.compression_ratio:.2f}", f"{(100 * self.space_saving):.2f} %"]
+            row += [f"{self.org_size:,}", f"{self.compressed_size:,}", f"{self.compression_ratio:.2f}", f"{(100 * self.space_saving):.2f} %"]
         main_table.add_row(*row)
 
         return main_table
