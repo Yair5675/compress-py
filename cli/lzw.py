@@ -2,7 +2,9 @@ import rich
 import typer
 from enum import Enum
 from pathlib import Path
+from typing import Optional, List
 from typing_extensions import Annotated
+from cli.transforms import Transformation
 from compressors.lzw import LzwCompressor
 from cli.shared_behavior import execute_compressor
 from compressors.lzw.memory_limits import OutOfMemoryStrategy, TooManyEncodingsException
@@ -77,7 +79,13 @@ def compress(
         benchmark: Annotated[bool, typer.Option(
         '--benchmark/--no-benchmark', '-b/-B', show_default=True,
             help="Whether the command should print information about the algorithm's performance and memory usage")
-        ] = False
+        ] = False,
+        transforms: Annotated[List[Transformation], typer.Option(
+            "--trans", '-t', show_default=True, case_sensitive=False,
+            help=f"Pre-compression transformations, can potentially increase compression efficiency. The transformations "
+                 f"will be computed sequentially in the same order they were given. Available transformations are:\n\n"
+                 f"{'\n\n'.join([f"{a.value} - {a.help()}" for a in list(Transformation)])}"
+        )] = None
 ) -> None:
     """
     Compresses the input file according to the
@@ -94,7 +102,7 @@ def compress(
     # message:
     compressor = LzwCompressor(dict_size, memory_strategy)
     try:
-        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark)
+        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark, transforms=transforms)
     except TooManyEncodingsException as e:
         rich.print("[bold red]LZW dictionary ran out of memory[/bold red]")
         raise typer.Abort(e)
@@ -115,7 +123,14 @@ def decompress(
         benchmark: Annotated[bool, typer.Option(
                     '--benchmark', '-b',
                     help="Whether the command should print information about the algorithm's performance and memory usage")
-                ] = False
+                ] = False,
+        transforms: Annotated[Optional[List[Transformation]], typer.Option(
+            "--trans", '-t', show_default=False, case_sensitive=False,
+            help=f"Pre-compression transformations, can potentially increase compression efficiency. The transformations "
+                 f"will be computed sequentially in the REVERSE order they were given, to match the compression command."
+                 f" Available transformations are:\n\n"
+                 f"{'\n\n'.join([f"{a.value} - {a.help()}" for a in list(Transformation)])}"
+        )] = None
 ) -> None:
     """
     Decompresses the input file according to the
@@ -127,7 +142,7 @@ def decompress(
 
     # Keep an eye out for ValueError, it is raised for an invalid format:
     try:
-        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark)
+        execute_compressor(compressor, LZW_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark, transforms=transforms)
     except ValueError:
         rich.print("[bold red]Invalid data given - cannot complete decompression[/bold red]")
         typer.Exit(1)

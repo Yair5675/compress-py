@@ -3,7 +3,9 @@ import rich
 import typer
 from pathlib import Path
 import cli.shared_behavior
+from typing import List, Optional
 from typing_extensions import Annotated
+from cli.transforms import Transformation
 from compressors.huffman import HuffmanCompressor
 from compressors.huffman.tree import InvalidTreeFormat
 
@@ -26,14 +28,21 @@ def compress(
         benchmark: Annotated[bool, typer.Option(
         '--benchmark/--no-benchmark', '-b/-B', show_default=True,
             help="Whether the command should print information about the algorithm's performance and memory usage")
-        ] = False
+        ] = False,
+        transforms: Annotated[Optional[List[Transformation]], typer.Option(
+            "--trans", '-t', show_default=False, case_sensitive=False,
+            help=f"Pre-compression transformations, can potentially increase compression efficiency. The transformations "
+                 f"will be computed sequentially in the same order they were given. Available transformations are:\n\n"
+                 f"{'\n\n'.join([f"{a.value} - {a.help()}" for a in list(Transformation)])}"
+        )] = None
 ) -> None:
     """
     Compresses a file using [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman coding[/link].
     The compressed data will be saved in the provided output path, and not interfere with the input file's data.
     """
     cli.shared_behavior.execute_compressor(
-        HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark
+        HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark,
+        transforms=transforms
     )
 
 
@@ -50,7 +59,14 @@ def decompress(input_path: Annotated[Path, typer.Argument(
         benchmark: Annotated[bool, typer.Option(
         '--benchmark/--no-benchmark', '-b/-B', show_default=True,
             help="Whether the command should print information about the algorithm's performance and memory usage")
-        ] = False
+        ] = False,
+        transforms: Annotated[Optional[List[Transformation]], typer.Option(
+            "--trans", '-t', show_default=False, case_sensitive=False,
+            help=f"Pre-compression transformations, can potentially increase compression efficiency. The transformations "
+                 f"will be computed sequentially in the REVERSE order they were given, to match the compression command."
+                 f" Available transformations are:\n\n"
+                 f"{'\n\n'.join([f"{a.value} - {a.help()}" for a in list(Transformation)])}"
+        )] = None
 ) -> None:
     """
     Decompresses a file that was compressed using the program's [link=https://en.wikipedia.org/wiki/Huffman_coding]Huffman Coding[/link] implementation.
@@ -58,7 +74,8 @@ def decompress(input_path: Annotated[Path, typer.Argument(
     """
     try:
         cli.shared_behavior.execute_compressor(
-            HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark
+            HuffmanCompressor(), HUFFMAN_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark,
+            transforms=transforms
         )
     except InvalidTreeFormat:
         rich.print("[bold red]Malformed/invalid data given - cannot complete decompression[/bold red]", file=sys.stderr)

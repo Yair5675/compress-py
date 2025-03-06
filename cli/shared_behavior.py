@@ -1,14 +1,16 @@
 import util
 import rich
 from pathlib import Path
+from typing import Optional
 from compressors import Compressor
+from cli.transforms import Transformation
 from cli.benchmark import CompressorBenchmark
 from rich.progress import SpinnerColumn, Progress, TextColumn
 
 
 def execute_compressor(
         compressor: Compressor, compressed_file_extension: str, input_path: Path, output_path: Path, is_compressing: bool,
-        benchmark: bool = True
+        benchmark: bool = True, transforms: Optional[list[Transformation]] = None
 ) -> None:
     """
     Uses the compressor object to compress/decompress the bytes of the input file, and write the result into the output
@@ -26,6 +28,7 @@ def execute_compressor(
                            (False).
     :param benchmark: If true, the compressor is executed while being tested (its runtime speed and memory usage is
                       recorded). This information will then be printed to the screen.
+    :param transforms: Pre-compression transformations. If decompressing, they will be executed in reverse.
     """
     # Validate paths:
     util.validate_file_paths(compressed_file_extension, input_path, output_path, is_compressing)
@@ -39,6 +42,15 @@ def execute_compressor(
             TextColumn("[progress.description]{task.description}"),
             transient=True
     ) as progress:
+        # If there are pre-compression transformations, encode/decode with them:
+        if transforms is not None:
+            transforms = transforms if is_compressing else reversed(transforms)
+            for transform in transforms:
+                task_id = progress.add_task(
+                    description=f"Computing {transform.value if is_compressing else 'inverse ' + transform.value}..."
+                )
+                input_data = transform.encode_date(input_data) if is_compressing else transform.decode_date(input_data)
+                progress.remove_task(task_id)
         # Compress or decompress the file:
         progress.add_task(description=f"{'Encoding' if is_compressing else 'Decoding'} data...", total=None)
         if benchmark:

@@ -1,7 +1,9 @@
 import rich
 import typer
 from pathlib import Path
+from typing import List, Optional
 from typing_extensions import Annotated
+from cli.transforms import Transformation
 from compressors.rle import RleCompressor
 from cli.shared_behavior import execute_compressor
 
@@ -23,7 +25,13 @@ def compress(
         benchmark: Annotated[bool, typer.Option(
             '--benchmark/--no-benchmark', '-b/-B', show_default=True,
             help="Whether the command should print information about the algorithm's performance and memory usage")
-        ] = False
+        ] = False,
+        transforms: Annotated[List[Transformation], typer.Option(
+            "--trans", '-t', show_default=True, case_sensitive=False,
+            help=f"Pre-compression transformations, can potentially increase compression efficiency. The transformations "
+                 f"will be computed sequentially in the same order they were given. Available transformations are:\n\n"
+                 f"{'\n\n'.join([f"{a.value} - {a.help()}" for a in list(Transformation)])}"
+        )] = None
 ) -> None:
     """
     Compresses the file according to the [link=https://en.wikipedia.org/wiki/Run-length_encoding]Run-Length encoding[/link] algorithm.
@@ -31,7 +39,8 @@ def compress(
     """
     # Initialize and execute the compressor:
     compressor = RleCompressor()
-    execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark)
+    execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=True, benchmark=benchmark,
+                       transforms=transforms)
 
 
 def decompress(input_path: Annotated[Path, typer.Argument(
@@ -47,7 +56,14 @@ def decompress(input_path: Annotated[Path, typer.Argument(
         benchmark: Annotated[bool, typer.Option(
         '--benchmark/--no-benchmark', '-b/-B', show_default=True,
             help="Whether the command should print information about the algorithm's performance and memory usage")
-        ] = False
+        ] = False,
+        transforms: Annotated[Optional[List[Transformation]], typer.Option(
+            "--trans", '-t', show_default=False, case_sensitive=False,
+            help=f"Pre-compression transformations, can potentially increase compression efficiency. The transformations "
+                 f"will be computed sequentially in the REVERSE order they were given, to match the compression command."
+                 f" Available transformations are:\n\n"
+                 f"{'\n\n'.join([f"{a.value} - {a.help()}" for a in list(Transformation)])}"
+        )] = None
 ) -> None:
     """
     Decompresses a file that was compressed using the program's [link=https://en.wikipedia.org/wiki/Run-length_encoding]RLE[/link] implementation.
@@ -56,7 +72,7 @@ def decompress(input_path: Annotated[Path, typer.Argument(
     # Initialize and execute the compressor:
     compressor = RleCompressor()
     try:
-        execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark)
+        execute_compressor(compressor, RLE_FILE_EXTENSION, input_path, output_path, is_compressing=False, benchmark=benchmark, transforms=transforms)
     # Be careful of ValueError in case invalid data was given:
     except ValueError:
         rich.print("[bold red]Invalid RLE compressed data[/bold red]")
