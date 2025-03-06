@@ -196,7 +196,7 @@ class HuffmanTree:
                     dfs(node.left, code << 1, depth + 1)
                     dfs(node.right, (code << 1) | 1, depth + 1)
 
-        dfs(self.root, 0, 0)
+        dfs(self.root, 0, 1)
         return encodings
 
     def to_bits(self) -> BitBuffer:
