@@ -1,5 +1,6 @@
 import typer
 from pathlib import Path
+from typing import Generator
 
 
 def get_bit(b: bytes, offset: int) -> int:
@@ -36,6 +37,18 @@ def read_bits(bitstream: bytes, offset: int, bits_num: int) -> int:
         result = ((result << 1) | current_bit) & 0xFFFFFFFF
 
     return result
+
+
+def bits_iterator(data: bytes) -> Generator[int, None, None]:
+    """
+    Given a bytes object, the function returns a generator iterating over each byte's bits, from the most significant
+    bit to the least.
+    :param data: Some bytes whose bits will be iterated over.
+    :return: A generator iterating over the data's bits.
+    """
+    for byte in data:
+        for bit_offset in range(7, -1, -1):
+            yield (byte >> bit_offset) & 1
 
 
 def validate_file_paths(compressed_file_extension: str, input_path: Path, output_path: Path, is_compressing: bool) -> None:
