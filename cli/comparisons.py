@@ -4,29 +4,40 @@ import cli.lzw
 import functools
 from rich import box
 from pathlib import Path
+from typing import Optional
 from rich.table import Table
 from compressors import Compressor
 from typing_extensions import Annotated
 from compressors.rle import RleCompressor
+from cli.transforms import Transformation
 from compressors.huffman import HuffmanCompressor
 from concurrent.futures import ProcessPoolExecutor
 from compressors.lzw import LzwCompressor, OutOfMemoryStrategy
 from cli.benchmark import CompressorBenchmark, BenchmarkResults
 
-compressors_to_test: tuple[tuple[str, Compressor], ...] = (
-    ("Huffman Coding", HuffmanCompressor()),
-    ("LZW (best compression rate)",
+compressors_to_test: tuple[tuple[str, Compressor, Optional[Transformation]], ...] = (
+    ("Huffman Coding (no transformations)", HuffmanCompressor()),
+    ("Huffman Coding (BWT + MTF)", HuffmanCompressor(), Transformation.BWT, Transformation.MTF),
+    ("LZW (best compression rate, no transforms)",
      LzwCompressor(int(cli.lzw.DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.USE_MINIMUM_REQUIRED)),
+    ("LZW (best compression rate, BWT + MTF)", 
+     LzwCompressor(int(cli.lzw.DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.USE_MINIMUM_REQUIRED),
+     Transformation.BWT, Transformation.MTF),
     ("LZW (medium memory usage)", LzwCompressor(int(cli.lzw.DictionarySize.MEDIUM), OutOfMemoryStrategy.STOP_STORE)),
     ("LZW (smallest memory usage)", LzwCompressor(int(cli.lzw.DictionarySize.SMALL), OutOfMemoryStrategy.STOP_STORE)),
-    ("RLE", RleCompressor())
+    ("RLE (no transformations)", RleCompressor()),
+    ("RLE (BWT + MTF)", RleCompressor(), Transformation.BWT, Transformation.MTF)
 )
 
 
 def test_with(input_path: Path, test_idx: int) -> BenchmarkResults:
     benchmark = CompressorBenchmark(compressors_to_test[test_idx][1])
+    transforms: tuple[Transformation] = compressors_to_test[test_idx][2:]
     with open(input_path, 'rb') as input_file:
-        results: tuple[bytes, BenchmarkResults] = benchmark(input_file.read(), compress=True)
+        data = input_file.read()
+        for t in transforms:
+            data = t.encode_date(data)
+        results: tuple[bytes, BenchmarkResults] = benchmark(data, compress=True)
     return results[1]
 
 
@@ -82,7 +93,7 @@ def compare_all(input_path: Annotated[Path, typer.Argument(
         ))
     
     # Add the names of the algorithm to the results:
-    results = zip((name for name, _ in compressors_to_test), results)
+    results = zip((name for name, *_ in compressors_to_test), results)
     
     # Sort them based on compression ratios:
     results: tuple[tuple[str, BenchmarkResults]] = tuple(sorted(
