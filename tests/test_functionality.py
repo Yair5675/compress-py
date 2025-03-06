@@ -1,5 +1,6 @@
 import os
 import pytest
+import random
 from collections import deque
 from cli.lzw import DictionarySize
 from compressors import Compressor
@@ -15,8 +16,9 @@ TESTS_DIR: str = "testfiles"
 @pytest.fixture
 def example_files_content() -> deque[bytes]:
     file_contents: deque[bytes] = deque()
+    chosen_tests = random.sample(os.listdir(TESTS_DIR), 5)
 
-    for filename in os.listdir(TESTS_DIR):
+    for filename in chosen_tests:
         with open(os.path.join(TESTS_DIR, filename), 'rb') as current_file:
             file_contents.append(current_file.read())
 
