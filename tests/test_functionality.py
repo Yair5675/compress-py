@@ -4,6 +4,7 @@ import random
 from collections import deque
 from cli.lzw import DictionarySize
 from compressors import Compressor
+from cli.transforms import Transformation
 from compressors.lzw import LzwCompressor
 from compressors.rle import RleCompressor
 from compressors.huffman import HuffmanCompressor
@@ -25,19 +26,40 @@ def example_files_content() -> deque[bytes]:
     return file_contents
 
 
-@pytest.mark.parametrize('compressor_name, compressor', [
-    ('Huffman', HuffmanCompressor()),
+def transform_data(data: bytes, transformations: list[Transformation], inverse: bool) -> bytes:
+    for t in reversed(transformations) if inverse else transformations:
+        data = t.decode_date(data) if inverse else t.encode_date(data)
+    return data
 
-    ('RLE', RleCompressor()),
 
-    ('LZW unlimited memory', LzwCompressor(int(DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.USE_MINIMUM_REQUIRED)),
-    ('LZW extra large memory', LzwCompressor(int(DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.STOP_STORE)),
-    ('LZW large memory', LzwCompressor(int(DictionarySize.LARGE), OutOfMemoryStrategy.STOP_STORE)),
-    ('LZW medium memory', LzwCompressor(int(DictionarySize.MEDIUM), OutOfMemoryStrategy.STOP_STORE)),
-    ('LZW small memory', LzwCompressor(int(DictionarySize.SMALL), OutOfMemoryStrategy.STOP_STORE))
+@pytest.mark.parametrize('compressor_name, compressor, transforms', [
+    ('Huffman', HuffmanCompressor(), []),
+
+    ('RLE', RleCompressor(), []),
+
+    ('LZW unlimited memory', LzwCompressor(int(DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.USE_MINIMUM_REQUIRED), []),
+    ('LZW extra large memory', LzwCompressor(int(DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.STOP_STORE), []),
+    ('LZW large memory', LzwCompressor(int(DictionarySize.LARGE), OutOfMemoryStrategy.STOP_STORE), []),
+    ('LZW medium memory', LzwCompressor(int(DictionarySize.MEDIUM), OutOfMemoryStrategy.STOP_STORE), []),
+    ('LZW small memory', LzwCompressor(int(DictionarySize.SMALL), OutOfMemoryStrategy.STOP_STORE), []),
+    
+    ('Huffman BWT + MTF', HuffmanCompressor(), [Transformation.BWT, Transformation.MTF]),
+
+    ('RLE BWT + MTF', RleCompressor(), [Transformation.BWT, Transformation.MTF]),
+
+    ('LZW unlimited memory BWT + MTF', LzwCompressor(int(DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.USE_MINIMUM_REQUIRED), [Transformation.BWT, Transformation.MTF]),
+    ('LZW extra large memory BWT + MTF', LzwCompressor(int(DictionarySize.EXTRA_LARGE), OutOfMemoryStrategy.STOP_STORE), [Transformation.BWT, Transformation.MTF]),
+    ('LZW large memory BWT + MTF', LzwCompressor(int(DictionarySize.LARGE), OutOfMemoryStrategy.STOP_STORE), [Transformation.BWT, Transformation.MTF]),
+    ('LZW medium memory BWT + MTF', LzwCompressor(int(DictionarySize.MEDIUM), OutOfMemoryStrategy.STOP_STORE), [Transformation.BWT, Transformation.MTF]),
+    ('LZW small memory BWT + MTF', LzwCompressor(int(DictionarySize.SMALL), OutOfMemoryStrategy.STOP_STORE), [Transformation.BWT, Transformation.MTF]),
 ])
-def test_functionality(compressor_name: str, compressor: Compressor, example_files_content: deque[bytes]) -> None:
+def test_functionality(compressor_name: str, compressor: Compressor, transforms: list[Transformation], 
+                       example_files_content: deque[bytes]) -> None:
     for content in example_files_content:
-        encoded_content: bytes = compressor.encode(content)
+        t_content = transform_data(content, transforms, inverse=False)
+        
+        encoded_content: bytes = compressor.encode(t_content)
         decoded_content: bytes = compressor.decode(encoded_content)
+        decoded_content = transform_data(decoded_content, transforms, inverse=True)
+        
         assert content == decoded_content
