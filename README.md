@@ -10,6 +10,9 @@ This repository is a CLI tool for file compression, and offers an implementation
 This project uses Python but refrains from any compression libraries. It uses the fantastic [Typer](https://typer.tiangolo.com/)
 library for handling the CLI part.
 
+## License
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
+
 
 ## Installation
 ### Python + Pip
@@ -51,9 +54,6 @@ And that's it! You're ready to start using the program using the command:
 ```bash
 python main.py [OPTIONS] COMMAND [ARGS]
 ```
-
-### Example on Windows
-![Example for setting up the repository on Windows](readme-resources/compress-py%20installation.gif)
 
 
 ## Compression and Decompression
@@ -427,4 +427,4 @@ The algorithms in the table will be sorted according to their resulting compress
 be colored accordingly.
 
 #### Example
-![compare-all command called on a test file](readme-resources/compare-all%20example.gif)
+![compare-all command called on a test file](readme-resources/compare-all-example.png)
