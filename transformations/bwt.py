@@ -137,7 +137,7 @@ def compute_inverse_bwt(bwt_data: bytes) -> bytes:
     eof_offset, data_ptr = get_eof_offset(bwt_data)
 
     # Check there are enough bytes in the data:
-    if data_ptr + eof_offset >= len(bwt_data):
+    if data_ptr + eof_offset > len(bwt_data):  # Since EOF is not actually in the data, it can be equal to len(bwt_data)
         raise ValueError(f"Invalid EOF offset: Data is too small for offset {eof_offset} (data's size is {len(bwt_data) - data_ptr})")
 
     # Construct a list of (byte, index) pairs, where indices larger than or equal to eof_offset are incremented by 1
