@@ -8,6 +8,14 @@ from cli.benchmark import CompressorBenchmark
 from rich.progress import SpinnerColumn, Progress, TextColumn
 
 
+def transform_data(data: bytes, transforms: list[Transformation], inverse: bool, progress: Progress) -> bytes:
+    for t in reversed(transforms) if inverse else transforms:
+        task_id = progress.add_task(description=f"Computing {'inverse ' + t.value if inverse else t.value}...")
+        data = t.decode_date(data) if inverse else t.encode_date(data)
+        progress.remove_task(task_id)
+    return data
+
+
 def execute_compressor(
         compressor: Compressor, compressed_file_extension: str, input_path: Path, output_path: Path, is_compressing: bool,
         benchmark: bool = True, transforms: Optional[list[Transformation]] = None
@@ -30,6 +38,9 @@ def execute_compressor(
                       recorded). This information will then be printed to the screen.
     :param transforms: Pre-compression transformations. If decompressing, they will be executed in reverse.
     """
+    if transforms is None:
+        transforms = []
+        
     # Validate paths:
     util.validate_file_paths(compressed_file_extension, input_path, output_path, is_compressing)
 
@@ -42,15 +53,10 @@ def execute_compressor(
             TextColumn("[progress.description]{task.description}"),
             transient=True
     ) as progress:
-        # If there are pre-compression transformations, encode/decode with them:
-        if transforms is not None:
-            transforms = transforms if is_compressing else reversed(transforms)
-            for transform in transforms:
-                task_id = progress.add_task(
-                    description=f"Computing {transform.value if is_compressing else 'inverse ' + transform.value}..."
-                )
-                input_data = transform.encode_date(input_data) if is_compressing else transform.decode_date(input_data)
-                progress.remove_task(task_id)
+        # If we need to compress, compute the transforms BEFORE compression:
+        if is_compressing:
+            input_data = transform_data(input_data, transforms, False, progress)
+            
         # Compress or decompress the file:
         progress.add_task(description=f"{'Encoding' if is_compressing else 'Decoding'} data...", total=None)
         if benchmark:
@@ -61,6 +67,10 @@ def execute_compressor(
             rich.print(table)
         else:
             output_data: bytes = compressor.encode(input_data) if is_compressing else compressor.decode(input_data)
+        
+        # If we need to decompress, compute the inverse transformations AFTER decompression:
+        if not is_compressing:
+            output_data = transform_data(output_data, transforms, True, progress)
 
         # Write to output file:
         progress.add_task(description="Writing to output file...", total=None)
