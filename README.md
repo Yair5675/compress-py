@@ -70,7 +70,7 @@ following command in the terminal:
 python main.py compress lzw example.txt example.lzw
 ```
 
-Moreover, compress-py does not allow compressing inplace, and will not go ahead as usual if the input file matches the 
+Moreover, compress-py does not allow compressing in-place, and will not go ahead as usual if the input file matches the 
 output file.<br>
 
 ### Algorithm File Extensions
@@ -115,7 +115,7 @@ that we don't need to represent "0 repetitions", so if those 3 bits represent th
 repetition for free!
 
 Sometimes the total size of all blocks will not be divisible by 8, which is a problem since files work with bytes.
-Counter this issue, another byte is added to the start of the data, specifying how many bits were added as padding to
+To counter this issue, another byte is added to the start of the data, specifying how many bits were added as padding to
 the end of the data, which helps the decompression step avoid adding false data when it encounters these padded bits.
 
 
