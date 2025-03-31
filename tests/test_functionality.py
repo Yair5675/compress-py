@@ -16,7 +16,7 @@
 
 import os
 import pytest
-import random
+from pathlib import Path
 from collections import deque
 from cli.lzw import DictionarySize
 from compressors import Compressor
@@ -27,13 +27,13 @@ from compressors.huffman import HuffmanCompressor
 from compressors.lzw.memory_limits import OutOfMemoryStrategy
 
 # Directory holding test files:
-TESTS_DIR: str = "testfiles"
+TESTS_DIR: Path = Path(__file__).parent.joinpath('testfiles', 'canterbury')
 
 
 @pytest.fixture
 def example_files_content() -> deque[bytes]:
     file_contents: deque[bytes] = deque()
-    chosen_tests = random.sample(os.listdir(TESTS_DIR), 5)
+    chosen_tests = os.listdir(TESTS_DIR)
 
     for filename in chosen_tests:
         with open(os.path.join(TESTS_DIR, filename), 'rb') as current_file:
