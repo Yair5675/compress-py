@@ -23,11 +23,11 @@ class Transformation(str, Enum):
     BWT = "BWT"
     MTF = "MTF"
 
-    def encode_date(self, data: bytes) -> bytes:
+    def encode_data(self, data: bytes) -> bytes:
         trs = {Transformation.BWT: compute_bwt, Transformation.MTF: compute_mtf}
         return trs[self](data)
     
-    def decode_date(self, encoded_data: bytes) -> bytes:
+    def decode_data(self, encoded_data: bytes) -> bytes:
         trs = {Transformation.BWT: compute_inverse_bwt, Transformation.MTF: compute_inverse_mtf}
         return trs[self](encoded_data)
 

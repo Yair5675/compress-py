@@ -27,7 +27,7 @@ from compressors.huffman import HuffmanCompressor
 from compressors.lzw.memory_limits import OutOfMemoryStrategy
 
 # Directory holding test files:
-TESTS_DIR: Path = Path(__file__).parent.joinpath('testfiles', 'canterbury')
+TESTS_DIR: Path = Path(__file__).parent.joinpath('testfiles', 'artificial')
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def example_files_content() -> deque[bytes]:
 
 def transform_data(data: bytes, transformations: list[Transformation], inverse: bool) -> bytes:
     for t in reversed(transformations) if inverse else transformations:
-        data = t.decode_date(data) if inverse else t.encode_date(data)
+        data = t.decode_data(data) if inverse else t.encode_data(data)
     return data
 
 

@@ -27,7 +27,7 @@ from rich.progress import SpinnerColumn, Progress, TextColumn
 def transform_data(data: bytes, transforms: list[Transformation], inverse: bool, progress: Progress) -> bytes:
     for t in reversed(transforms) if inverse else transforms:
         task_id = progress.add_task(description=f"Computing {'inverse ' + t.value if inverse else t.value}...")
-        data = t.decode_date(data) if inverse else t.encode_date(data)
+        data = t.decode_data(data) if inverse else t.encode_data(data)
         progress.remove_task(task_id)
     return data
 

@@ -52,7 +52,7 @@ def test_with(input_path: Path, test_idx: int) -> BenchmarkResults:
     with open(input_path, 'rb') as input_file:
         data = input_file.read()
         for t in transforms:
-            data = t.encode_date(data)
+            data = t.encode_data(data)
         results: tuple[bytes, BenchmarkResults] = benchmark(data, compress=True)
     return results[1]
 
