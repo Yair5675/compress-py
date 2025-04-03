@@ -31,7 +31,7 @@ def compress(c: Compressor, ts: list[Transformation], data: bytes):
 
 def measure_algorithm(
         algorithm: str, compressor: Compressor, transforms: list[Transformation], data: bytes
-) -> pd.DataFrame:
+):
     # Start recording time and memory:
     start = time.perf_counter()
     (memory_usage, compressed_data) = memory_profiler.memory_usage(
@@ -45,7 +45,7 @@ def measure_algorithm(
     comp_size = max(1, len(compressed_data))
     
     # Form data frame:
-    data_frame = pd.DataFrame({
+    data_frame = {
         'Algorithm': algorithm,
         'Memory Measurements (s)': [[i * MEMORY_INTERVAL for i in range(len(memory_usage))]],
         'Memory usage (MiB)': [memory_usage],
@@ -54,7 +54,7 @@ def measure_algorithm(
         'Compressed Size (bytes)': comp_size,
         'Compression Ratio': org_size / comp_size,
         'Space Saving': 1 - (comp_size / org_size)
-    })
+    }
     return data_frame
 
 
