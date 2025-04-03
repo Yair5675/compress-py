@@ -8,6 +8,7 @@
 #  [ ] - Rank algorithms for each corpora
 #  [ ] - Save results to a CSV
 import time
+from collections import namedtuple
 from functools import reduce
 
 import matplotlib.pyplot as plt
@@ -19,6 +20,26 @@ from compressors import Compressor
 
 # Time between memory measurements:
 MEMORY_INTERVAL: float = 1e-2
+
+# Tuple that holds info about the compression of a corpus:
+CorpusCompressionInfo = namedtuple("CorpusCompressionInfo", [
+    # Name of the algorithm:
+    'algorithm',
+    # List of the original sizes of each file in the corpus
+    'org_file_sizes',
+    # List of the compressed sizes of each file in the corpus
+    'compressed_file_sizes',
+    # List of compression ratios
+    'compression ratios',
+    # List of space savings
+    'space_savings',
+    # List of each compression's duration
+    'compression_times',
+    # List of peak memory usage
+    'memory_peaks',
+    # List of average memory usage
+    'memory_avg'
+])
 
 
 def compress(c: Compressor, ts: list[Transformation], data: bytes):
