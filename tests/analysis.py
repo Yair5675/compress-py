@@ -7,9 +7,11 @@
 #        this
 #  [ ] - Rank algorithms for each corpora
 #  [ ] - Save results to a CSV
+import os
 import time
 from collections import namedtuple
 from functools import reduce
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import memory_profiler
@@ -30,7 +32,7 @@ CorpusCompressionInfo = namedtuple("CorpusCompressionInfo", [
     # List of the compressed sizes of each file in the corpus
     'compressed_file_sizes',
     # List of compression ratios
-    'compression ratios',
+    'compression_ratios',
     # List of space savings
     'space_savings',
     # List of each compression's duration
@@ -50,33 +52,53 @@ def compress(c: Compressor, ts: list[Transformation], data: bytes):
     return c.encode(t_data)
 
 
-def measure_algorithm(
-        algorithm: str, compressor: Compressor, transforms: list[Transformation], data: bytes
+def add_file_to_info(
+        file_data: bytes, info: CorpusCompressionInfo, compressor: Compressor, transforms: list[Transformation]
 ):
-    # Start recording time and memory:
+    org_size = len(file_data)
+
     start = time.perf_counter()
     (memory_usage, compressed_data) = memory_profiler.memory_usage(
-        proc=(compress, (compressor, transforms, data), {}),
-        interval=MEMORY_INTERVAL, retval=True
+        proc=(compress, (compressor, transforms, file_data), {}), interval=MEMORY_INTERVAL, retval=True
     )
     end = time.perf_counter()
 
-    # Get sizes (set minimum to 1 to avoid division by 0):
-    org_size = max(1, len(data))
-    comp_size = max(1, len(compressed_data))
+    avg_mem = 0 if len(memory_usage) == 0 else sum(memory_usage) / len(memory_usage)
+    peak_mem = 0 if len(memory_usage) == 0 else max(memory_usage)
+
+    comp_size = len(compressed_data)
+    compression_ratio = org_size / comp_size
+    space_saving = 1 - (comp_size / org_size)
+
+    info.memory_avg.append(avg_mem)
+    info.memory_peaks.append(peak_mem)
     
-    # Form data frame:
-    data_frame = {
-        'Algorithm': algorithm,
-        'Memory Measurements (s)': [[i * MEMORY_INTERVAL for i in range(len(memory_usage))]],
-        'Memory usage (MiB)': [memory_usage],
-        'Compression duration (s)': end - start,
-        'Original Size (bytes)': org_size,
-        'Compressed Size (bytes)': comp_size,
-        'Compression Ratio': org_size / comp_size,
-        'Space Saving': 1 - (comp_size / org_size)
-    }
-    return data_frame
+    info.org_file_sizes.append(org_size)
+    info.compressed_file_sizes.append(comp_size)
+    
+    info.compression_times.append(end - start)
+    info.compression_ratios.append(compression_ratio)
+    info.space_savings.append(space_saving)
+
+
+def measure_algorithm(
+        algorithm: str, compressor: Compressor, transforms: list[Transformation], corpus_name: str
+):
+    # Get the directory:
+    corpus_dir: Path = Path(__file__).parent.joinpath('testfiles', corpus_name)
+    
+    # Form info:
+    info = CorpusCompressionInfo(algorithm, [], [], [], [], [], [], [])
+    
+    for file_name in os.listdir(corpus_dir):
+        file_path = os.path.join(corpus_dir, file_name)
+        if not os.path.isfile(file_path):
+            continue
+            
+        with open(file_path, 'rb') as file:
+            add_file_to_info(file.read(), info, compressor, transforms)
+    
+    return info
 
 
 def plot_comp_vs_size(results: pd.DataFrame, subplot: plt.Axes, colors: dict[str, tuple[float, float, float, float]]):
